@@ -1,3 +1,3 @@
-import { runCounterDemo } from "./incremental";
+import * as DemoCounter from "./DemoCounter";
 
-runCounterDemo(window.root);
+DemoCounter.mount(window.root, 1);
