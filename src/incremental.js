@@ -162,6 +162,9 @@ class IMap {
   forEach(f) {
     Object.keys(this.value).forEach(key => f(key, this.value[key]));
   }
+  get(k) {
+    return this.value[k];
+  }
 }
 
 const mapObj = (f, xs) => {
@@ -343,7 +346,13 @@ const applyPatch = (parent, view, viewChanges) => {
     delta.cata({
       Add: value => null,
       Remove: () => null,
-      Update: delta => null
+      Update: delta => {
+        const old = view.handlers.get(key);
+        if (old != null) {
+          parent.removeEventListener(key, old.value, false);
+        }
+        parent.addEventListener(key, delta.value, false);
+      }
     });
   });
   viewChanges.kids.forEach((delta, index) => {
