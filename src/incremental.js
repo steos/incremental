@@ -40,7 +40,7 @@ class Atomic {
     this.value = value;
   }
   patch(value) {
-    console.log("Atomic.patch", value, this.value);
+    // console.log("Atomic.patch", value, this.value);
     return value == null ? this : new Atomic(value);
   }
 
@@ -48,6 +48,11 @@ class Atomic {
     return new Atomic(f(this.value));
   }
 
+  // :: forall a b c
+  //  . (a -> b -> c)
+  // -> Jet (Atomic a)
+  // -> Jet (Atomic b)
+  // -> Jet (Atomic c)
   static jetLift2(f, a, b) {
     return {
       position: new Atomic(f(a.position.value, b.position.value)),
@@ -73,10 +78,6 @@ class Atomic {
 
   asJetConstant() {
     return Atomic.jetConstant(this.value);
-  }
-
-  toString() {
-    return `(Atomic ${this.value})`;
   }
 }
 
@@ -111,7 +112,7 @@ class MapChanges {
 
 class IMap {
   constructor(value) {
-    console.log("IMap.constructor", value);
+    // console.log("IMap.constructor", value);
     this.value = value;
   }
   static empty = new IMap({});
@@ -120,7 +121,7 @@ class IMap {
     if (!(deltas instanceof MapChanges)) {
       throw new TypeError();
     }
-    console.log("IMap.patch|enter", deltas, this.value);
+    // console.log("IMap.patch|enter", deltas, this.value);
     const m = Object.assign({}, this.value);
     deltas.forEach((key, delta) => {
       // console.log("apply mapchange", key, delta);
@@ -140,23 +141,23 @@ class IMap {
         }
       });
     });
-    console.log("IMap.patch|leave", m);
+    // console.log("IMap.patch|leave", m);
     return new IMap(m);
   }
 
   static emptyJet = { position: IMap.empty, velocity: MapChanges.empty };
 
   static staticJet(xs) {
-    console.log("IMap.staticJet", xs);
+    // console.log("IMap.staticJet", xs);
     return {
-      position: new IMap(xs),
+      position: new IMap(mapObj(x => x.position, xs)),
       velocity: new MapChanges(
-        mapObj(velocity => MapChange.Update(velocity), xs)
+        mapObj(({ velocity }) => MapChange.Update(velocity), xs)
       )
     };
   }
   static singleton(k, v) {
-    console.log("IMap.singleton", k, v);
+    // console.log("IMap.singleton", k, v);
     return IMap.staticJet({ [k]: v });
   }
   forEach(f) {
@@ -181,7 +182,7 @@ class IArray {
     this.xs = xs;
   }
   patch(deltas) {
-    console.log("IArray.patch", deltas);
+    // console.log("IArray.patch", deltas);
     const xs = this.xs.concat([]);
     deltas.forEach(delta =>
       delta.cata({
@@ -223,7 +224,7 @@ class View {
     this.kids = kids;
   }
   patch({ text, attrs, handlers, kids }) {
-    console.log("View.patch", this, { text, attrs, handlers, kids });
+    // console.log("View.patch", this, { text, attrs, handlers, kids });
     return new View(
       this.element,
       this.text.patch(text),
@@ -290,7 +291,7 @@ const textWith = (tagName, s) =>
 const text = s => textWith("span", s);
 
 const render = (parent, view) => {
-  console.log("render", view);
+  // console.log("render", view);
   const elem = document.createElement(view.element);
 
   const text = document.createTextNode(view.text.value);
@@ -326,7 +327,9 @@ applyPatch
   -> Eff (dom :: DOM | eff) Unit
 */
 const applyPatch = (parent, view, viewChanges) => {
-  console.log("applyPatch", view, viewChanges);
+  console.group("applyPatch");
+  console.log(view);
+  console.log(viewChanges);
   //TODO
   if (viewChanges.text != null) {
     parent.textContent = viewChanges.text;
@@ -349,9 +352,11 @@ const applyPatch = (parent, view, viewChanges) => {
       Update: delta => {
         const old = view.handlers.get(key);
         if (old != null) {
+          console.log("removeEventListener", key, old);
           parent.removeEventListener(key, old.value, false);
         }
-        parent.addEventListener(key, delta.value, false);
+        console.log("addEventListener", key, delta);
+        parent.addEventListener(key, delta, false);
       }
     });
   });
@@ -364,6 +369,7 @@ const applyPatch = (parent, view, viewChanges) => {
       DeleteAt: index => {}
     });
   });
+  console.groupEnd();
 };
 
 /*
@@ -381,35 +387,42 @@ run
   -> Eff (dom :: DOM, ref :: REF | eff) Unit
 */
 const run = (root, component, initialModel) => {
-  console.log("run", initialModel);
+  // console.log("run", initialModel);
   let currentView = null;
   let currentModel = initialModel;
 
-  const update = (m, dm) =>
-    console.log("run.update", m, dm) ||
-    component(Atomic.jetConstant(onChange), { position: m, velocity: dm })
-      .velocity;
+  const onChange = modelChange => () => {
+    console.group("onChange");
+    console.log("modelChange =", modelChange);
+    console.log("currentModel =", currentModel);
+    console.log("currentView = ", currentView);
+    // console.log("run.onChange.currentView", currentView);
 
-  const onChange = modelChange => {
-    console.log("run.onChange.currentView", currentView);
-    console.log("run.onChange", modelChange);
     const nextModel = currentModel.patch(modelChange);
-    console.log("run.onChange.nextModel", nextModel);
+    // console.log("run.onChange.nextModel", nextModel);
     const viewChange = update(currentModel, modelChange);
-    console.log("run.onChange.viewChange", viewChange);
+    // console.log("run.onChange.viewChange", viewChange);
     const nextView = currentView.patch(viewChange);
-    console.log("run.onChange.nextView", nextView);
+    // console.log("run.onChange.nextView", nextView);
     applyPatch(root.children[0], currentView, viewChange);
+    console.log("viewChange =", viewChange);
+    console.log("nextModel =", nextModel);
     currentModel = nextModel;
     currentView = nextView;
+    console.groupEnd();
   };
+
+  const update = (m, dm) =>
+    // console.log("run.update", m, dm) ||
+    component(Atomic.jetConstant(onChange), { position: m, velocity: dm })
+      .velocity;
 
   currentView = component(
     Atomic.jetConstant(onChange),
     initialModel.asJetConstant()
   ).position;
 
-  console.log("run.currentView", currentView);
+  // console.log("run.currentView", currentView);
 
   while (root.lastChild) {
     root.removeChild(root.lastChild);
@@ -431,15 +444,22 @@ type Component model eff
 const Increment = (f, current) => f(current + 1);
 
 const Counter = (change, model) => {
-  const onClick = new Atomic(() => Atomic.jetLift2(Increment, change, model));
-  return element(
+  console.group("Counter");
+  console.log(change);
+  console.log(model);
+  const onClick = (f, current) => f(current + 1);
+
+  const elem = element(
     "button",
     IMap.emptyJet,
-    IMap.singleton("click", onClick),
+    IMap.singleton("click", Atomic.jetLift2(onClick, change, model)),
     IArray.singleton(
       text(Atomic.jetMap(count => `Current value = ${count}`, model))
     )
   );
+
+  console.groupEnd();
+  return elem;
 };
 
 export const runCounterDemo = root => run(root, Counter, new Atomic(0));
