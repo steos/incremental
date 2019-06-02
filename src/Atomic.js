@@ -47,7 +47,7 @@ export const jetLift2 = (f, a, b) => {
 
 export const jetMap = (f, { position, velocity }) => {
   return {
-    position: new Atomic(f(position.value)),
+    position: position.fmap(f),
     velocity: Last.of(velocity).fmap(f)
   };
 };

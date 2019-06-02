@@ -29,6 +29,9 @@ so in JavaScript terms this could look like
 
 ```
 class Atomic {
+    constructor(value) {
+      this.value = value
+    }
     patch(newValue) {
         return newValue == null ? this : new Atomic(delta)
     }
@@ -112,6 +115,45 @@ this is equivalent to
 ```
 { position :: IArray Int
 , velocity :: Array (ArrayChange Int (Last Int)) }
+```
+
+## Incremental Functions
+
+Incremental functions are functions that operate on `Jet`s of "patchable" data structures like `Atomic`, `IArray`, etc.
+
+For example we can map a function over a `Jet (Atomic Int)`.
+That means we need to apply a function to the `position`, i.e. the current value and the `velocity` which is the change description. (Must be a monoid so we have a identity element and we can combine them).
+
+In the most simple mapping operation we apply a function to a single encapsulated value:
+
+```
+class Bla {
+  map(f) {
+    return new Bla(f(this.value))
+  }
+}
+```
+
+With `Jet`s we have to apply the function to a value and a second value that describes how to change the first.
+
+With the previous JavaScript example code for `Atomic` the change description is a new value or null for no change.
+
+In the following example code `position` is an `Atomic Int` and `Number | null` is the `velocity`.
+
+```
+jetMapAtomic = (f, { position, velocity }) => {
+  return {
+    position: position.fmap(f),
+    velocity: velocity != null ? f(velocity) : null
+  };
+};
+
+jetMapAtomic(count => 'The number is ' + count, {position: new Atomic(1), velocity: null})
+// {position: Atomic('The number is 1'), velocity: null}
+
+jetMapAtomic(count => 'The number is ' + count, {position: new Atomic(1), velocity: 7})
+// {position: Atomic('The number is 1'), velocity: 'The number is 7'}
+
 ```
 
 ## purview
