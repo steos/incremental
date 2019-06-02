@@ -1,6 +1,6 @@
-import { IMap } from "./Map";
-import { IArray } from "./Array";
-import { Atomic } from "./Atomic";
+import * as IMap from "./Map";
+import * as IArray from "./Array";
+import * as Atomic from "./Atomic";
 
 class View {
   constructor(element, text, attrs, handlers, kids) {

@@ -11,35 +11,36 @@ export class Atomic {
     return new Atomic(f(this.value));
   }
 
-  // :: forall a b c
-  //  . (a -> b -> c)
-  // -> Jet (Atomic a)
-  // -> Jet (Atomic b)
-  // -> Jet (Atomic c)
-  static jetLift2(f, a, b) {
-    return {
-      position: new Atomic(f(a.position.value, b.position.value)),
-      velocity:
-        a.velocity == null && b.velocity == null
-          ? null
-          : f(
-              a.velocity != null ? a.velocity : a.position.value,
-              b.velocity != null ? b.velocity : b.position.value
-            )
-    };
-  }
-  static jetMap(f, { position, velocity }) {
-    return {
-      position: new Atomic(f(position.value)),
-      velocity: velocity != null ? f(velocity) : null
-    };
-  }
-
-  static jetConstant(x) {
-    return { position: new Atomic(x), velocity: null };
-  }
-
   asJetConstant() {
-    return Atomic.jetConstant(this.value);
+    return jetConstant(this.value);
   }
 }
+
+// :: forall a b c
+//  . (a -> b -> c)
+// -> Jet (Atomic a)
+// -> Jet (Atomic b)
+// -> Jet (Atomic c)
+export const jetLift2 = (f, a, b) => {
+  return {
+    position: new Atomic(f(a.position.value, b.position.value)),
+    velocity:
+      a.velocity == null && b.velocity == null
+        ? null
+        : f(
+            a.velocity != null ? a.velocity : a.position.value,
+            b.velocity != null ? b.velocity : b.position.value
+          )
+  };
+};
+
+export const jetMap = (f, { position, velocity }) => {
+  return {
+    position: new Atomic(f(position.value)),
+    velocity: velocity != null ? f(velocity) : null
+  };
+};
+
+export const jetConstant = x => {
+  return { position: new Atomic(x), velocity: null };
+};

@@ -1,6 +1,6 @@
-import { Atomic } from "./Atomic";
-import { IMap } from "./Map";
-import { IArray } from "./Array";
+import * as Atomic from "./Atomic";
+import * as IMap from "./Map";
+import * as IArray from "./Array";
 import * as IDom from "./incremental";
 
 /*
@@ -32,5 +32,9 @@ const Counter = (change, model) => {
   return elem;
 };
 
+const listOf = (dflt, component, change, xs) => {
+  // TODO const addCounter = Atomic.jetMap
+};
+
 export const mount = (root, init = 0) =>
-  IDom.run(root, Counter, new Atomic(init));
+  IDom.run(root, Counter, new Atomic.Atomic(init));
