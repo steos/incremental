@@ -1,6 +1,7 @@
 import * as IObject from "./Object";
 import * as IArray from "./Array";
 import * as Atomic from "./Atomic";
+import { Last } from "./Optional";
 
 class View {
   constructor(element, text, attrs, handlers, kids) {
@@ -131,47 +132,54 @@ const applyPatch = (parent, view, viewChanges) => {
   console.log(view);
   console.log(viewChanges);
 
-  viewChanges.text.whenPresent(textContent => {
+  Last.of(viewChanges.text).whenPresent(textContent => {
     parent.textContent = textContent;
   });
 
-  viewChanges.attrs.forEach((key, delta) => {
-    delta.cata({
-      Add: value => parent.setAttribute(key, value),
-      Remove: () => parent.removeAttribute(key),
-      Update: delta => {
-        if (delta != null) {
-          parent.setAttribute(key, delta);
+  if (viewChanges.attrs != null) {
+    viewChanges.attrs.forEach((key, delta) => {
+      delta.cata({
+        Add: value => parent.setAttribute(key, value),
+        Remove: () => parent.removeAttribute(key),
+        Update: delta => {
+          if (delta != null) {
+            parent.setAttribute(key, delta);
+          }
         }
-      }
+      });
     });
-  });
-  viewChanges.handlers.forEach((key, delta) => {
-    delta.cata({
-      Add: value => null,
-      Remove: () => null,
-      Update: delta => {
-        const old = view.handlers.get(key);
-        if (old != null) {
-          console.log("removeEventListener", key, old);
-          parent.removeEventListener(key, old.value, false);
+  }
+
+  if (viewChanges.handlers != null) {
+    viewChanges.handlers.forEach((key, delta) => {
+      delta.cata({
+        Add: value => null,
+        Remove: () => null,
+        Update: delta => {
+          const old = view.handlers.get(key);
+          if (old != null) {
+            console.log("removeEventListener", key, old);
+            parent.removeEventListener(key, old.value, false);
+          }
+          delta.whenPresent(f => {
+            console.log("addEventListener", key, f);
+            parent.addEventListener(key, f, false);
+          });
         }
-        delta.whenPresent(f => {
-          console.log("addEventListener", key, f);
-          parent.addEventListener(key, f, false);
-        });
-      }
+      });
     });
-  });
-  viewChanges.kids.forEach((delta, index) => {
-    delta.cata({
-      InsertAt: (index, value) => {},
-      ModifyAt: (index, value) => {
-        applyPatch(parent.children[index], view.kids.get(index), value);
-      },
-      DeleteAt: index => {}
+  }
+  if (viewChanges.kids != null) {
+    viewChanges.kids.forEach((delta, index) => {
+      delta.cata({
+        InsertAt: (index, value) => {},
+        ModifyAt: (index, value) => {
+          applyPatch(parent.children[index], view.kids.get(index), value);
+        },
+        DeleteAt: index => {}
+      });
     });
-  });
+  }
   console.groupEnd();
 };
 

@@ -63,7 +63,7 @@ const listOf = (dflt, component) => (change, xs) => {
 };
 
 export const mount = (root, init = 0) =>
-  IDom.run(root, Counter, Atomic.wrap(init));
+  IDom.run(root, Counter, Atomic.of(init));
 
 export const mountList = root =>
-  IDom.run(root, listOf(Atomic.wrap(0), Counter), IArray.wrap([]));
+  IDom.run(root, listOf(Atomic.of(0), Counter), IArray.of([]));

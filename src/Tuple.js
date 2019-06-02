@@ -3,8 +3,13 @@ class Tuple {
     this.fst = fst;
     this.snd = snd;
   }
-  patch({ fst, snd }) {
+  patch(delta) {
+    if (delta == null) return this;
+    const { fst, snd } = delta;
     return new Tuple(this.fst.patch(fst), this.snd.patch(snd));
+  }
+  append({ fst, snd }) {
+    return new Tuple(this.fst.append(fst), this.snd.append(snd));
   }
 }
 
@@ -21,6 +26,8 @@ const snd = ({ position, velocity }) => ({
   position: position.snd,
   velocity: velocity.snd
 });
+
+export const of = (a, b) => new Tuple(a, b);
 
 // -- | Construct a `Tuple`, incrementally.
 // tuple :: forall a da b db. Patch a da => Patch b db => Jet a -> Jet b -> Jet (Tuple a b)
@@ -39,4 +46,4 @@ const snd = ({ position, velocity }) => ({
 //   -> Jet c
 // uncurry f t = f (fst t) (snd t)
 
-const uncurry = (f, t) => f(fst(t), snd(t));
+export const uncurry = (f, t) => f(fst(t), snd(t));

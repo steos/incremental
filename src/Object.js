@@ -15,7 +15,6 @@ export class ObjectChanges {
     //TODO
     throw new Error("todo");
   }
-  static empty = new ObjectChanges({});
 
   forEach(f) {
     for (const [k, v] of Object.entries(this.map)) {
@@ -30,6 +29,7 @@ export class IObject {
     this.value = value;
   }
   patch(deltas) {
+    if (deltas == null) return this;
     if (!(deltas instanceof ObjectChanges)) {
       throw new TypeError();
     }
@@ -73,7 +73,7 @@ export class IObject {
 
 export const emptyJet = {
   position: IObject.empty,
-  velocity: ObjectChanges.empty
+  velocity: null
 };
 
 export const staticJet = xs => {

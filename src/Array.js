@@ -13,6 +13,7 @@ export class IArray {
     this.xs = xs;
   }
   patch(deltas) {
+    if (deltas == null) return this;
     // console.log("IArray.patch", deltas);
     const xs = this.xs.concat([]);
     deltas.forEach(delta =>
@@ -47,10 +48,14 @@ export class IArray {
     return this.xs;
   }
 
+  length() {
+    return this.xs.length;
+  }
+
   static empty = new IArray([]);
 }
 
-export const wrap = xs => new IArray(xs);
+export const of = xs => new IArray(xs);
 
 export const singleton = ({ position, velocity }) => {
   return {
@@ -135,6 +140,30 @@ export const jetMap = (f, { position, velocity }) => {
 // => Jet (IArray a)
 // -> Jet (IArray (Tuple (Atomic Int) a))
 const withIndex = ({ position, velocity }) => {
+  const len0 = position.length();
+  const go = (len, delta) =>
+    delta.cata({
+      InsertAt: (i, a) => ({
+        accum: len + 1,
+        value: [ArrayChange.InsertAt(i, Tuple.of(Atomic.of(i), a))].concat(
+          JsArray.range(i + 1, len).map(j =>
+            ArrayChange.ModifyAt(j, Tuple.of(Atomic.of(j), null))
+          )
+        )
+      }),
+      DeleteAt: i => ({
+        accum: len - 1,
+        value: [ArrayChange.DeleteAt(i)].concat(
+          JsArray.range(i, len - 2).map(j =>
+            ArrayChange.ModifyAt(j, ITuple.of(Atomic.of(j), null))
+          )
+        )
+      }),
+      ModifyAt: (i, da) => ({
+        accum: len,
+        value: [ArrayChange.ModifyAt(i, Tuple.of(null, da))]
+      })
+    });
   throw new Error("TODO");
 };
 
