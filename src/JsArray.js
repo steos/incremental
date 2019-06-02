@@ -45,3 +45,11 @@ export const mapAccumL = (f, x0, xs) => {
     { accum: x0, value: [] }
   );
 };
+
+export const range = (from, to) => {
+  const xs = [];
+  for (const i = from; i <= to; ++i) {
+    xs.push(i);
+  }
+  return xs;
+};
