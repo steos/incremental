@@ -15,9 +15,9 @@ This is kind of like saying we have a "patchable" interface that can be satisfie
 
 This makes more sense if we look at a concrete example.
 
-### Atomic
+### [Atomic](https://github.com/paf31/purescript-incremental-functions/blob/master/src/Data/Incremental/Eq.purs#L19)
 
-The simplest "patchable" type is called [`Atomic`](https://github.com/paf31/purescript-incremental-functions/blob/master/src/Data/Incremental/Eq.purs#L19) which just wraps any arbitrary value. The data structure to describe a patch delta for `Atomic` is a `Last` which is a newtype wrapper around `Maybe` with last-wins append (semigroup) implementation.
+The simplest "patchable" type is called `Atomic` which just wraps any arbitrary value. The data structure to describe a patch delta for `Atomic` is a `Last` which is a newtype wrapper around `Maybe` with last-wins append (semigroup) implementation.
 
 ```
 instance patchAtomic :: Patch (Atomic a) (Last a) where
@@ -45,9 +45,9 @@ const y = x.patch(2)
 const z = y.patch(null)
 ```
 
-### IArray
+### [IArray](https://github.com/paf31/purescript-incremental-functions/blob/master/src/Data/Incremental/Array.purs)
 
-[IArray](https://github.com/paf31/purescript-incremental-functions/blob/master/src/Data/Incremental/Array.purs) wraps ordinary arrays. The type to describe the "change" is an array of `ArrayChange`s:
+`IArray` wraps ordinary arrays. The type to describe the "change" is an array of `ArrayChange`s:
 
 ```
 data ArrayChange a da
@@ -70,9 +70,49 @@ instance patchIArray
 
 so `patch` takes a list of changes and applies them immutably to create a new IArray with all the changes applied.
 
-### Jet
+### [Jet](https://github.com/paf31/purescript-incremental-functions/blob/096930c94bdaede2a6fb83669065ccf7bc042f7e/src/Data/Incremental.purs#L72)
 
-TBD
+A Jet is
+
+> a value (`position`) paired with a change (`velocity`).
+
+Jets are the basis for incremental functions like `IArray.map` and purview components.
+
+In the Purescript implementation a `Jet` is a type alias for a record:
+
+```
+type Jet a =
+  { position :: a
+  , velocity :: Change a
+  }
+```
+
+so it has a `position` of some type `a` and a `velocity` of some type `Change a`.
+The `Change` type is used for type level coercion, so when we see a concrete signature like
+
+```
+Jet (Atomic Int)
+```
+
+is equivalent to
+
+```
+{ position :: Atomic Int
+, velocity :: Last Int }
+```
+
+and
+
+```
+Jet (IArray (Atomic Int))
+```
+
+this is equivalent to
+
+```
+{ position :: IArray Int
+, velocity :: Array (ArrayChange Int (Last Int)) }
+```
 
 ## purview
 
