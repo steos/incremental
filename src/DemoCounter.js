@@ -32,9 +32,38 @@ const Counter = (change, model) => {
   return elem;
 };
 
-const listOf = (dflt, component, change, xs) => {
-  // TODO const addCounter = Atomic.jetMap
+// forall model change eff
+//    . Patch model change
+//   => model
+//   -> Component model eff
+//   -> Component (IArray model) eff
+const listOf = (dflt, component) => (change, xs) => {
+  // TODO
+  console.log("listOf xs =", xs);
+
+  const addCounter = () => null;
+
+  return IDom.element_(
+    "div",
+    IArray.staticJet([
+      IDom.element(
+        "button",
+        IMap.emptyJet,
+        IMap.singleton("click", addCounter),
+        IArray.singleton(IDom.text(Atomic.jetConstant("Add")))
+      ),
+      IDom.element_(
+        "ol",
+        IArray.jetMapWithIndex((index, x) => {
+          //TODO
+        }, xs)
+      )
+    ])
+  );
 };
 
 export const mount = (root, init = 0) =>
-  IDom.run(root, Counter, new Atomic.Atomic(init));
+  IDom.run(root, Counter, Atomic.wrap(init));
+
+export const mountList = root =>
+  IDom.run(root, listOf(Atomic.wrap(0), Counter), IArray.wrap([]));

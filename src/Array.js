@@ -28,12 +28,19 @@ export class IArray {
   forEach(f) {
     this.xs.forEach(x => f(x));
   }
+
   get(i) {
     return this.xs[i];
   }
 
+  asJetConstant() {
+    return jetConstant(this.xs);
+  }
+
   static empty = new IArray([]);
 }
+
+export const wrap = xs => new IArray(xs);
 
 export const singleton = ({ position, velocity }) => {
   return {
@@ -47,7 +54,33 @@ export const emptyJet = { position: IArray.empty, velocity: [] };
 // Array (Jet a) -> Jet (IArray a)
 export const staticJet = xs => {
   return {
-    position: xs.map(({ position }) => position),
+    position: new IArray(xs.map(({ position }) => position)),
     velocity: xs.map(({ velocity }) => ArrayChange.ModifyAt(index, velocity))
   };
+};
+
+export const jetConstant = xs => {
+  return { position: new IArray(xs), velocity: null };
+};
+
+// forall a b da db
+//    . Patch a da
+//   => Patch b db
+//   => (Jet a -> Jet b)
+//   -> Jet (IArray a)
+//   -> Jet (IArray b)
+export const jetMap = (f, a) => {
+  //TODO
+  throw new Error("TODO");
+};
+
+// forall a da b db
+//    . Patch a da
+//   => Patch b db
+//   => (Jet (Atomic Int) -> Jet a -> Jet b)
+//   -> Jet (IArray a)
+//   -> Jet (IArray b)
+export const jetMapWithIndex = (f, a) => {
+  //TODO
+  throw new Error("TODO");
 };

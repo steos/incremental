@@ -76,6 +76,9 @@ const view = (tagName, text, attrs, handlers, kids) => ({
 export const element = (tagName, attrs, handlers, kids) =>
   view(tagName, Atomic.jetConstant(""), attrs, handlers, kids);
 
+export const element_ = (tagName, kids) =>
+  view(tagName, Atomic.jetConstant(""), IMap.emptyJet, IMap.emptyJet, kids);
+
 export const textWith = (tagName, s) =>
   view(tagName, s, IMap.emptyJet, IMap.emptyJet, IArray.emptyJet);
 

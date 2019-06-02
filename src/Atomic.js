@@ -16,6 +16,8 @@ export class Atomic {
   }
 }
 
+export const wrap = x => new Atomic(x);
+
 // :: forall a b c
 //  . (a -> b -> c)
 // -> Jet (Atomic a)
