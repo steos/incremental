@@ -1,21 +1,13 @@
 import daggy from "daggy";
+import * as JsObject from "./JsObject";
 
-const mapObj = (f, xs) => {
-  // console.log("mapObj", f, xs);
-  const ys = {};
-  Object.keys(xs).forEach(key => {
-    ys[key] = f(xs[key]);
-  });
-  return ys;
-};
-
-export const MapChange = daggy.taggedSum("MapChange", {
+export const ObjectChange = daggy.taggedSum("MapChange", {
   Add: ["value"],
   Remove: [],
   Update: ["delta"]
 });
 
-export class MapChanges {
+export class ObjectChanges {
   constructor(map) {
     this.map = map;
   }
@@ -23,22 +15,22 @@ export class MapChanges {
     //TODO
     throw new Error("todo");
   }
-  static empty = new MapChanges({});
+  static empty = new ObjectChanges({});
 
   forEach(f) {
-    Object.keys(this.map).forEach(key => {
-      f(key, this.map[key]);
-    });
+    for (const [k, v] of Object.entries(this.map)) {
+      f(k, v);
+    }
   }
 }
 
-export class IMap {
+export class IObject {
   constructor(value) {
     // console.log("IMap.constructor", value);
     this.value = value;
   }
   patch(deltas) {
-    if (!(deltas instanceof MapChanges)) {
+    if (!(deltas instanceof ObjectChanges)) {
       throw new TypeError();
     }
 
@@ -46,7 +38,7 @@ export class IMap {
     const m = Object.assign({}, this.value);
     deltas.forEach((key, delta) => {
       // console.log("apply mapchange", key, delta);
-      if (!MapChange.is(delta)) throw new TypeError();
+      if (!ObjectChange.is(delta)) throw new TypeError();
       delta.cata({
         Add: value => (m[key] = value),
         Remove: () => {
@@ -63,28 +55,33 @@ export class IMap {
       });
     });
     // console.log("IMap.patch|leave", m);
-    return new IMap(m);
+    return new IObject(m);
   }
 
   forEach(f) {
-    Object.keys(this.value).forEach(key => f(key, this.value[key]));
+    for (const [k, v] of Object.entries(this.value)) {
+      f(k, v);
+    }
   }
 
   get(k) {
     return this.value[k];
   }
 
-  static empty = new IMap({});
+  static empty = new IObject({});
 }
 
-export const emptyJet = { position: IMap.empty, velocity: MapChanges.empty };
+export const emptyJet = {
+  position: IObject.empty,
+  velocity: ObjectChanges.empty
+};
 
 export const staticJet = xs => {
   // console.log("IMap.staticJet", xs);
   return {
-    position: new IMap(mapObj(x => x.position, xs)),
-    velocity: new MapChanges(
-      mapObj(({ velocity }) => MapChange.Update(velocity), xs)
+    position: new IObject(JsObject.map(x => x.position, xs)),
+    velocity: new ObjectChanges(
+      JsObject.map(({ velocity }) => ObjectChange.Update(velocity), xs)
     )
   };
 };

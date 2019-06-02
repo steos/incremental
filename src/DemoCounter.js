@@ -1,5 +1,5 @@
 import * as Atomic from "./Atomic";
-import * as IMap from "./Map";
+import * as IObject from "./Object";
 import * as IArray from "./Array";
 import * as IDom from "./incremental";
 
@@ -21,8 +21,8 @@ const Counter = (change, model) => {
 
   const elem = IDom.element(
     "button",
-    IMap.emptyJet,
-    IMap.singleton("click", Atomic.jetLift2(onClick, change, model)),
+    IObject.emptyJet,
+    IObject.singleton("click", Atomic.jetLift2(onClick, change, model)),
     IArray.singleton(
       IDom.text(Atomic.jetMap(count => `Current value = ${count}`, model))
     )
@@ -48,8 +48,8 @@ const listOf = (dflt, component) => (change, xs) => {
     IArray.staticJet([
       IDom.element(
         "button",
-        IMap.emptyJet,
-        IMap.singleton("click", addCounter),
+        IObject.emptyJet,
+        IObject.singleton("click", addCounter),
         IArray.singleton(IDom.text(Atomic.jetConstant("Add")))
       ),
       IDom.element_(

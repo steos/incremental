@@ -1,4 +1,5 @@
 import daggy from "daggy";
+import * as JsArray from "./JsArray";
 
 export const ArrayChange = daggy.taggedSum("ArrayChange", {
   InsertAt: ["index", "value"],
@@ -27,6 +28,10 @@ export class IArray {
 
   forEach(f) {
     this.xs.forEach(x => f(x));
+  }
+
+  map(f) {
+    return new IArray(this.xs.map((x, i) => f(x, i)));
   }
 
   get(i) {
@@ -63,14 +68,40 @@ export const jetConstant = xs => {
   return { position: new IArray(xs), velocity: null };
 };
 
+// forall a da. Patch a da => Int -> a -> Change (IArray a)
+export const insertAt = (i, v) => [ArrayChange.InsertAt(i, v)];
+
+// forall a da. Patch a da => Int -> Change (IArray a)
+export const deleteAt = i => [ArrayChange.DeleteAt(i)];
+
+// forall a da. Patch a da => Int -> Change a -> Change (IArray a)
+export const modifyAt = (i, c) => [ArrayChange.ModifyAt(i, c)];
+
 // forall a b da db
 //    . Patch a da
 //   => Patch b db
 //   => (Jet a -> Jet b)
 //   -> Jet (IArray a)
 //   -> Jet (IArray b)
-export const jetMap = (f, a) => {
+export const jetMap = (f, { position, velocity }) => {
   //TODO
+  const f_updates = xs.map((x, i) =>
+    ArrayChange.ModifyAt(index, f(x.asJetConstant()).velocity)
+  );
+
+  // xs_updates :: Array (ArrayChange b db)
+  // xs_updates = Array.catMaybes (mapAccumL go xs (fromChange dxs)).value
+
+  // mapAccumL :: forall a b s f. Traversable f =>
+  //   (s -> a -> Accum s b) -> s -> f a -> Accum s (f b)
+
+  // go :: Array a -> ArrayChange a da -> { accum :: Array a, value :: Maybe (ArrayChange b db) }
+  const go = (xs, delta) =>
+    delta.cata({
+      InsertAt: (index, x) => null,
+      DeleteAt: index => null,
+      ModifyAt: (index, dx) => null
+    });
   throw new Error("TODO");
 };
 

@@ -1,4 +1,4 @@
-import * as IMap from "./Map";
+import * as IObject from "./Object";
 import * as IArray from "./Array";
 import * as Atomic from "./Atomic";
 
@@ -77,10 +77,16 @@ export const element = (tagName, attrs, handlers, kids) =>
   view(tagName, Atomic.jetConstant(""), attrs, handlers, kids);
 
 export const element_ = (tagName, kids) =>
-  view(tagName, Atomic.jetConstant(""), IMap.emptyJet, IMap.emptyJet, kids);
+  view(
+    tagName,
+    Atomic.jetConstant(""),
+    IObject.emptyJet,
+    IObject.emptyJet,
+    kids
+  );
 
 export const textWith = (tagName, s) =>
-  view(tagName, s, IMap.emptyJet, IMap.emptyJet, IArray.emptyJet);
+  view(tagName, s, IObject.emptyJet, IObject.emptyJet, IArray.emptyJet);
 
 export const text = s => textWith("span", s);
 
