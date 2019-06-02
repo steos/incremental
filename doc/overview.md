@@ -116,4 +116,44 @@ this is equivalent to
 
 ## purview
 
-TBD
+At the core of purview is a data structure to describe a DOM element and another to describe the changes to a DOM element. Those are the [`View`](<(https://github.com/paf31/purescript-purview/blob/7031081163f0bd6c131099b8bbcfc38af51579d5/src/Purview.purs#L48)>) and [`ViewChanges`](<(https://github.com/paf31/purescript-purview/blob/7031081163f0bd6c131099b8bbcfc38af51579d5/src/Purview.purs#L59)>) types.
+Both of those types are newtype wrappers around records:
+
+```
+newtype View eff = View
+  { element  :: String
+  , text     :: Atomic String
+  , attrs    :: IMap String (Atomic String)
+  , handlers :: IMap String (Atomic (EventListener eff))
+  , kids     :: IArray (View eff)
+  }
+
+newtype ViewChanges eff = ViewChanges
+  { text     :: Last String
+  , attrs    :: MapChanges String (Atomic String) (Last String)
+  , handlers :: MapChanges String (Atomic (EventListener eff)) (Last (EventListener eff))
+  , kids     :: Array (ArrayChange (View eff) (ViewChanges eff))
+  }
+```
+
+### [Component](https://github.com/paf31/purescript-purview/blob/7031081163f0bd6c131099b8bbcfc38af51579d5/src/Purview.purs#L238)
+
+A purview component is an incremental function, i.e. it operates on `Jet`s.
+It takes two parameters: a Jet containing a model (for example an IArray) and a Jet of an Atomic that contains a callback.
+The return value is a Jet of `View`s.
+
+> A component takes a changing update function, and a changing `model`
+> and returns a changing `View`. The update function receives a `Change` to
+> the model and applies it.
+
+```
+type Component model eff
+   = Jet (Atomic (Change model -> Eff eff Unit))
+  -> Jet model
+  -> Jet (View eff)
+```
+
+### The Loop
+
+The callback function passed to the component receives an appropriate change value to the model and patches the model.
+With the new model the component function is called again which produces a `ViewChange` of the view which is then applied to the DOM.
