@@ -1,7 +1,7 @@
 import * as Atomic from "./Atomic";
 import * as IObject from "./Object";
 import * as IArray from "./Array";
-import * as IDom from "./incremental";
+import * as IDom from "./Dom";
 
 /*
 -- | A component takes a changing update function, and a changing `model`
