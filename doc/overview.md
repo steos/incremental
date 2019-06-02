@@ -122,7 +122,7 @@ this is equivalent to
 Incremental functions are functions that operate on `Jet`s of "patchable" data structures like `Atomic`, `IArray`, etc.
 
 For example we can map a function over a `Jet (Atomic Int)`.
-That means we need to apply a function to the `position`, i.e. the current value and the `velocity` which is the change description. (Must be a monoid so we have a identity element and we can combine them).
+That means we need to apply a function to the `position`, i.e. the current value and the `velocity` which is the change description (must be a monoid so we have an identity element and we can combine changes).
 
 In the most simple mapping operation we apply a function to a single encapsulated value:
 
@@ -138,12 +138,14 @@ With `Jet`s we have to apply the function to a value and a second value that des
 
 With the previous JavaScript example code for `Atomic` the change description is a new value or null for no change.
 
-In the following example code `position` is an `Atomic Int` and `Number | null` is the `velocity`.
+The following example shows how to map over a `Jet Atomic` with our previous example code.
+`position` is an `Atomic Int` and `Number | null` is the `velocity`.
 
 ```
+// map a function over an Atomic <value,change> pair
 jetMapAtomic = (f, { position, velocity }) => {
   return {
-    position: position.fmap(f),
+    position: new Atomic(f(position.value)),
     velocity: velocity != null ? f(velocity) : null
   };
 };
