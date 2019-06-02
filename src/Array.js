@@ -1,5 +1,6 @@
 import daggy from "daggy";
 import * as JsArray from "./JsArray";
+import * as ITuple from "./Tuple";
 
 export const ArrayChange = daggy.taggedSum("ArrayChange", {
   InsertAt: ["index", "value"],
@@ -129,13 +130,19 @@ export const jetMap = (f, { position, velocity }) => {
   };
 };
 
+// :: forall a da
+// . Patch a da
+// => Jet (IArray a)
+// -> Jet (IArray (Tuple (Atomic Int) a))
+const withIndex = ({ position, velocity }) => {
+  throw new Error("TODO");
+};
+
 // forall a da b db
 //    . Patch a da
 //   => Patch b db
 //   => (Jet (Atomic Int) -> Jet a -> Jet b)
 //   -> Jet (IArray a)
 //   -> Jet (IArray b)
-export const jetMapWithIndex = (f, a) => {
-  //TODO
-  throw new Error("TODO");
-};
+export const jetMapWithIndex = (f, a) =>
+  withIndex(jetMap(t => ITuple.uncurry(f, t), a));
