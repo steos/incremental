@@ -42,6 +42,10 @@ export class IArray {
     return jetConstant(this.xs);
   }
 
+  unwrap() {
+    return this.xs;
+  }
+
   static empty = new IArray([]);
 }
 
@@ -84,25 +88,45 @@ export const modifyAt = (i, c) => [ArrayChange.ModifyAt(i, c)];
 //   -> Jet (IArray a)
 //   -> Jet (IArray b)
 export const jetMap = (f, { position, velocity }) => {
-  //TODO
-  const f_updates = xs.map((x, i) =>
+  const f0 = x => f(x.asJetConstant()).position;
+  const f1 = (position, velocity) => f({ position, velocity }).velocity;
+
+  // go :: Array a -> ArrayChange a da -> { accum :: Array a, value :: Maybe (ArrayChange b db) }
+  const go = (xs, delta) =>
+    delta.cata({
+      InsertAt: (index, x) => ({
+        accum: JsArray.insertAt(index, x, xs),
+        value: ArrayChange.InsertAt(index, f(x.asJetConstant()).position)
+      }),
+      DeleteAt: index => ({
+        accum: JsArray.deleteAt(index, xs),
+        value: delta
+      }),
+      ModifyAt: (index, dx) => ({
+        accum: JsArray.modifyAt(index, x => x.patch(dx), xs),
+        value:
+          0 <= index && index < xs.length
+            ? ArrayChange.ModifyAt(index, f1(xs[index], dx))
+            : null
+      })
+    });
+
+  const f_updates = velocity.map((x, i) =>
     ArrayChange.ModifyAt(index, f(x.asJetConstant()).velocity)
   );
 
   // xs_updates :: Array (ArrayChange b db)
   // xs_updates = Array.catMaybes (mapAccumL go xs (fromChange dxs)).value
+  const xs_updates = JsArray.mapAccumL(
+    go,
+    position.unwrap(),
+    velocity
+  ).value.filter(x => x != null);
 
-  // mapAccumL :: forall a b s f. Traversable f =>
-  //   (s -> a -> Accum s b) -> s -> f a -> Accum s (f b)
-
-  // go :: Array a -> ArrayChange a da -> { accum :: Array a, value :: Maybe (ArrayChange b db) }
-  const go = (xs, delta) =>
-    delta.cata({
-      InsertAt: (index, x) => null,
-      DeleteAt: index => null,
-      ModifyAt: (index, dx) => null
-    });
-  throw new Error("TODO");
+  return {
+    position: position.map(f0),
+    velocity: f_updates.concat(xs_updates)
+  };
 };
 
 // forall a da b db
