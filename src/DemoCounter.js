@@ -17,7 +17,7 @@ const Counter = (change, model) => {
   console.group("Counter");
   console.log(change);
   console.log(model);
-  const onClick = (f, current) => f(current + 1);
+  const onClick = (f, current) => f(Atomic.replace(current + 1));
 
   const elem = IDom.element(
     "button",

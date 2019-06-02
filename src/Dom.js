@@ -130,10 +130,11 @@ const applyPatch = (parent, view, viewChanges) => {
   console.group("applyPatch");
   console.log(view);
   console.log(viewChanges);
-  //TODO
-  if (viewChanges.text != null) {
-    parent.textContent = viewChanges.text;
-  }
+
+  viewChanges.text.whenPresent(textContent => {
+    parent.textContent = textContent;
+  });
+
   viewChanges.attrs.forEach((key, delta) => {
     delta.cata({
       Add: value => parent.setAttribute(key, value),
@@ -155,8 +156,10 @@ const applyPatch = (parent, view, viewChanges) => {
           console.log("removeEventListener", key, old);
           parent.removeEventListener(key, old.value, false);
         }
-        console.log("addEventListener", key, delta);
-        parent.addEventListener(key, delta, false);
+        delta.whenPresent(f => {
+          console.log("addEventListener", key, f);
+          parent.addEventListener(key, f, false);
+        });
       }
     });
   });
