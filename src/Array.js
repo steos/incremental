@@ -156,7 +156,7 @@ class ArrayJet {
   }
 
   mapWithIndex(f) {
-    return this.withIndex().map(t => ITuple.uncurry(f, t));
+    return this.withIndex().map(t => t.uncurry(f));
   }
 }
 

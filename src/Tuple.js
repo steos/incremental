@@ -33,10 +33,11 @@ class TupleJet {
   snd() {
     return this.position.snd.asJet(this.velocity.snd);
   }
+  uncurry(f) {
+    return f(this.fst(), this.snd());
+  }
 }
 
 export const Jet = TupleJet;
 
 export const of = (a, b) => new Tuple(a, b);
-
-export const uncurry = (f, t) => f(t.fst(), t.snd());
