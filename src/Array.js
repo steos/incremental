@@ -1,6 +1,7 @@
 import daggy from "daggy";
 import * as JsArray from "./JsArray";
 import * as ITuple from "./Tuple";
+import * as Atomic from "./Atomic";
 
 export const ArrayChange = daggy.taggedSum("ArrayChange", {
   InsertAt: ["index", "value"],
@@ -70,7 +71,9 @@ export const emptyJet = { position: IArray.empty, velocity: [] };
 export const staticJet = xs => {
   return {
     position: new IArray(xs.map(({ position }) => position)),
-    velocity: xs.map(({ velocity }) => ArrayChange.ModifyAt(index, velocity))
+    velocity: xs.map(({ velocity }, index) =>
+      ArrayChange.ModifyAt(index, velocity)
+    )
   };
 };
 
@@ -94,7 +97,14 @@ export const modifyAt = (i, c) => [ArrayChange.ModifyAt(i, c)];
 //   -> Jet (IArray a)
 //   -> Jet (IArray b)
 export const jetMap = (f, { position, velocity }) => {
-  const f0 = x => f(x.asJetConstant()).position;
+  console.group("IArray.jetMap");
+  console.log({ position, velocity });
+  const f0 = x => f({ position: x, velocity: null }).position;
+
+  if (velocity == null) {
+    return { position: position.map(f0), velocity: null };
+  }
+
   const f1 = (position, velocity) => f({ position, velocity }).velocity;
 
   // go :: Array a -> ArrayChange a da -> { accum :: Array a, value :: Maybe (ArrayChange b db) }
@@ -102,7 +112,10 @@ export const jetMap = (f, { position, velocity }) => {
     delta.cata({
       InsertAt: (index, x) => ({
         accum: JsArray.insertAt(index, x, xs),
-        value: ArrayChange.InsertAt(index, f(x.asJetConstant()).position)
+        value: ArrayChange.InsertAt(
+          index,
+          f({ position: x, velocity: null }).position
+        )
       }),
       DeleteAt: index => ({
         accum: JsArray.deleteAt(index, xs),
@@ -117,8 +130,8 @@ export const jetMap = (f, { position, velocity }) => {
       })
     });
 
-  const f_updates = velocity.map((x, i) =>
-    ArrayChange.ModifyAt(index, f(x.asJetConstant()).velocity)
+  const f_updates = velocity.map((x, index) =>
+    ArrayChange.ModifyAt(index, f({ position: x, velocity: null }).velocity)
   );
 
   // xs_updates :: Array (ArrayChange b db)
@@ -129,6 +142,7 @@ export const jetMap = (f, { position, velocity }) => {
     velocity
   ).value.filter(x => x != null);
 
+  console.groupEnd();
   return {
     position: position.map(f0),
     velocity: f_updates.concat(xs_updates)
@@ -140,14 +154,18 @@ export const jetMap = (f, { position, velocity }) => {
 // => Jet (IArray a)
 // -> Jet (IArray (Tuple (Atomic Int) a))
 const withIndex = ({ position, velocity }) => {
+  console.group("IArray.withIndex");
+  console.log("position =", position);
+  console.log("velocity =", velocity);
+
   const len0 = position.length();
   const go = (len, delta) =>
     delta.cata({
       InsertAt: (i, a) => ({
         accum: len + 1,
-        value: [ArrayChange.InsertAt(i, Tuple.of(Atomic.of(i), a))].concat(
+        value: [ArrayChange.InsertAt(i, ITuple.of(Atomic.of(i), a))].concat(
           JsArray.range(i + 1, len).map(j =>
-            ArrayChange.ModifyAt(j, Tuple.of(Atomic.of(j), null))
+            ArrayChange.ModifyAt(j, ITuple.of(Atomic.of(j), null))
           )
         )
       }),
@@ -161,10 +179,26 @@ const withIndex = ({ position, velocity }) => {
       }),
       ModifyAt: (i, da) => ({
         accum: len,
-        value: [ArrayChange.ModifyAt(i, Tuple.of(null, da))]
+        value: [ArrayChange.ModifyAt(i, ITuple.of(null, da))]
       })
     });
-  throw new Error("TODO");
+
+  const position_ = position.map((x, i) => ITuple.of(i, x));
+  const velocity_ =
+    velocity != null
+      ? JsArray.mapAccumL(go, len0, velocity).value.reduce(
+          (a, b) => a.concat(b),
+          []
+        )
+      : null;
+
+  console.log("position_ = ", position_);
+  console.log("velocity_ = ", velocity_);
+  console.groupEnd();
+  return {
+    position: position_,
+    velocity: velocity_
+  };
 };
 
 // forall a da b db
@@ -173,5 +207,20 @@ const withIndex = ({ position, velocity }) => {
 //   => (Jet (Atomic Int) -> Jet a -> Jet b)
 //   -> Jet (IArray a)
 //   -> Jet (IArray b)
-export const jetMapWithIndex = (f, a) =>
-  withIndex(jetMap(t => ITuple.uncurry(f, t), a));
+export const jetMapWithIndex = (f, a) => {
+  const indexed = withIndex(a);
+  console.log("indexed =", indexed);
+
+  const a_ = jetMap(t => {
+    console.log("uncurry", f, t);
+    if (!(t instanceof ITuple.Tuple)) {
+      console.error("Expected Tuple but got:", t);
+      throw new TypeError();
+    }
+
+    const uncurried = ITuple.uncurry(f, t);
+    console.log("uncurried =", uncurried);
+  }, indexed);
+  console.log("jetMapWithIndex ret =", a_);
+  return a_;
+};

@@ -29,6 +29,7 @@ export const of = x => new Atomic(x);
 // -> Jet (Atomic b)
 // -> Jet (Atomic c)
 export const jetLift2 = (f, a, b) => {
+  console.log("Atomic.jetLift2", a, b);
   const va = Last.of(a.velocity);
   const vb = Last.of(b.velocity);
   return {

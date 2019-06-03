@@ -93,8 +93,9 @@ export const text = s => textWith("span", s);
 
 const render = (parent, view) => {
   // console.log("render", view);
+  console.group("IDom.render");
+  console.log("view =", view);
   const elem = document.createElement(view.element);
-
   const text = document.createTextNode(view.text.value);
   elem.appendChild(text);
   view.attrs.forEach((key, { value }) => {
@@ -105,6 +106,7 @@ const render = (parent, view) => {
   });
   view.kids.forEach(kid => render(elem, kid));
   parent.appendChild(elem);
+  console.groupEnd();
 };
 
 /*

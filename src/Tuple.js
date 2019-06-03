@@ -1,4 +1,4 @@
-class Tuple {
+export class Tuple {
   constructor(fst, snd) {
     this.fst = fst;
     this.snd = snd;
@@ -17,14 +17,14 @@ class Tuple {
 // forall a da b db. Patch a da => Patch b db => Jet (Tuple a b) -> Jet a
 const fst = ({ position, velocity }) => ({
   position: position.fst,
-  velocity: velocity.fst
+  velocity: velocity != null ? velocity.fst : null
 });
 
 // -- | Extract the second component of a `Tuple`, incrementally.
 // forall a da b db. Patch a da => Patch b db => Jet (Tuple a b) -> Jet b
 const snd = ({ position, velocity }) => ({
   position: position.snd,
-  velocity: velocity.snd
+  velocity: velocity != null ? velocity.snd : null
 });
 
 export const of = (a, b) => new Tuple(a, b);

@@ -1,3 +1,4 @@
 import * as DemoCounter from "./DemoCounter";
 
-DemoCounter.mount(window.root, 1);
+DemoCounter.mount(window.counter, 1);
+DemoCounter.mountList(window.list);

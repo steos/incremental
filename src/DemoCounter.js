@@ -41,7 +41,10 @@ const listOf = (dflt, component) => (change, xs) => {
   // TODO
   console.log("listOf xs =", xs);
 
-  const addCounter = () => null;
+  const addCounter = Atomic.jetMap(
+    change_ => change_(IArray.insertAt(0, dflt)),
+    change
+  );
 
   return IDom.element_(
     "div",
@@ -56,6 +59,21 @@ const listOf = (dflt, component) => (change, xs) => {
         "ol",
         IArray.jetMapWithIndex((index, x) => {
           //TODO
+          console.log("list item", index, x);
+          const changeAt = (i_, change_) => c =>
+            change_(IArray.modifyAt(i_, c));
+          return IDom.element_(
+            "li",
+            IArray.staticJet([
+              component(Atomic.jetLift2(changeAt, index, change), x),
+              IDom.element(
+                "button",
+                IMap.emptyJet,
+                IMap.emptyJet,
+                IArray.singleton(IDom.text(Atomic.of("Remove")))
+              )
+            ])
+          );
         }, xs)
       )
     ])
