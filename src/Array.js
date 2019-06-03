@@ -14,8 +14,7 @@ export class IArray {
     this.xs = xs;
   }
   patch(deltas) {
-    if (deltas == null) return this;
-    // console.log("IArray.patch", deltas);
+    console.log("IArray.patch", deltas);
     const xs = this.xs.concat([]);
     deltas.forEach(delta =>
       delta.cata({
@@ -61,75 +60,44 @@ class ArrayJet {
     this.position = position;
     this.velocity = velocity == null ? [] : velocity;
   }
+
+  // (Jet a -> Jet b)
+  // -> Jet (IArray a)
+  // -> Jet (IArray b)
   map(f) {
-    const { position, velocity } = this;
-    console.group("IArray.Jet.map");
-    console.log(f);
-    console.log({ position, velocity });
-    const f0 = x => f(x.asJet()).position;
-
-    if (velocity == null) {
-      return new ArrayJet(position.map(f0), null);
-    }
-
-    const f1 = (position, velocity) => f(position.asJet(velocity)).velocity;
-
-    // go :: Array a -> ArrayChange a da -> { accum :: Array a, value :: Maybe (ArrayChange b db) }
-    const go = (xs, delta) => {
-      console.group("ArrayJet.map.go");
-      console.log("delta =", delta);
-      const ret = delta.cata({
+    let xs = [].concat(this.position.unwrap());
+    let velocity = [];
+    this.velocity.forEach(change =>
+      change.cata({
         InsertAt: (index, x) => {
-          console.group("InsertAt");
-          console.log("x =", x);
-          const jet = x.asJet();
-          console.log("jet =", jet);
-          const fjet = f(jet);
-          console.log("f(x.asJet()) = ", fjet);
-          const ret2 = {
-            accum: JsArray.insertAt(index, x, xs),
-            value: ArrayChange.InsertAt(index, fjet.position)
-          };
-          console.groupEnd();
-          return ret2;
+          xs.splice(index, 0, x);
+          velocity.push(insertAt(index, f(x.asJet()).position)[0]);
         },
-        DeleteAt: index => ({
-          accum: JsArray.deleteAt(index, xs),
-          value: delta
-        }),
-        ModifyAt: (index, dx) => ({
-          accum: JsArray.modifyAt(index, x => x.patch(dx), xs),
-          value:
-            0 <= index && index < xs.length
-              ? ArrayChange.ModifyAt(index, f1(xs[index], dx))
-              : null
-        })
-      });
-      console.groupEnd();
-      return ret;
-    };
+        DeleteAt: index => {
+          xs.splice(index, 1);
+          velocity.push(deleteAt(index)[0]);
+        },
+        ModifyAt: (index, d) => {
+          if (0 <= index && index < xs.length) {
+            const c = xs[index].patch(d);
+            velocity.push(modifyAt(index, f(xs[index].asJet(d)).velocity)[0]);
+            xs[index] = c;
+          }
+        }
+      })
+    );
 
-    const f_updates = position
-      .map((x, index) => ArrayChange.ModifyAt(index, f(x.asJet()).velocity))
-      .unwrap();
-
-    // xs_updates :: Array (ArrayChange b db)
-    // xs_updates = Array.catMaybes (mapAccumL go xs (fromChange dxs)).value
-    const xs_updates = JsArray.mapAccumL(
-      go,
-      position.unwrap(),
+    return new ArrayJet(
+      this.position.map(x => f(x.asJet()).position),
       velocity
-    ).value.filter(x => x != null);
-
-    console.groupEnd();
-    return new ArrayJet(position.map(f0), f_updates.concat(xs_updates));
+    );
   }
 
   withIndex() {
     const { position, velocity } = this;
-    console.group("IArray.Jet.withIndex");
-    console.log("position =", position);
-    console.log("velocity =", velocity);
+    // console.group("IArray.Jet.withIndex");
+    // console.log("position =", position);
+    // console.log("velocity =", velocity);
 
     const len0 = position.length();
     const go = (len, delta) =>
@@ -165,15 +133,15 @@ class ArrayJet {
           )
         : null;
 
-    console.log("position_ = ", position_);
-    console.log("velocity_ = ", velocity_);
-    console.groupEnd();
+    // console.log("position_ = ", position_);
+    // console.log("velocity_ = ", velocity_);
+    // console.groupEnd();
     return new ArrayJet(position_, velocity_);
   }
 
   mapWithIndex(f) {
     return this.withIndex().map(t => {
-      console.log("t =", t);
+      // console.log("t =", t);
       return t.uncurry(f);
     });
   }

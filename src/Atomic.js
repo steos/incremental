@@ -24,11 +24,16 @@ class AtomicJet {
     this.position = position;
     this.velocity = Last.of(velocity);
   }
+
+  // forall a b
+  //  . (a -> b)
+  // -> Jet (Atomic a)
+  // -> Jet (Atomic b)
   map(f) {
     return new AtomicJet(this.position.fmap(f), this.velocity.fmap(f));
   }
   static lift2(f, a, b) {
-    console.log("Atomic.Jet.lift2", a, b);
+    // console.log("Atomic.Jet.lift2", a, b);
     const va = a.velocity;
     const vb = b.velocity;
     return new AtomicJet(

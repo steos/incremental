@@ -95,9 +95,9 @@ const listOf = (dflt, component) => (change, xs) => {
         "ol",
         xs.mapWithIndex((index, x) => {
           //TODO
-          console.group("list item");
-          console.log("index =", index);
-          console.log("item =", x);
+          // console.group("list item");
+          // console.log("index =", index);
+          // console.log("item =", x);
           const changeAt = (i_, change_) => c =>
             change_(IArray.modifyAt(i_, c));
 
@@ -105,7 +105,7 @@ const listOf = (dflt, component) => (change, xs) => {
             Atomic.Jet.lift2(changeAt, index, change),
             x
           );
-          console.log("componentElem =", componentElem);
+          // console.log("componentElem =", componentElem);
           const li = IDom.element_(
             "li",
             IArray.staticJet([
@@ -118,8 +118,8 @@ const listOf = (dflt, component) => (change, xs) => {
               )
             ])
           );
-          console.log("liElem =", li);
-          console.groupEnd();
+          // console.log("liElem =", li);
+          // console.groupEnd();
           return li;
         })
       )
