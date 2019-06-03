@@ -21,6 +21,8 @@ export class ObjectChanges {
       f(k, v);
     }
   }
+
+  static empty = new ObjectChanges({});
 }
 
 export class IObject {
@@ -78,7 +80,7 @@ export class IObject {
 class ObjectJet {
   constructor(position, velocity) {
     this.position = position;
-    this.velocity = velocity;
+    this.velocity = velocity == null ? ObjectChanges.empty : velocity;
   }
 }
 

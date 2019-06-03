@@ -147,68 +147,64 @@ const applyPatch = (parent, view, viewChanges) => {
     parent.textContent = textContent;
   });
 
-  if (viewChanges.attrs != null) {
-    viewChanges.attrs.forEach((key, delta) => {
-      delta.cata({
-        Add: value => parent.setAttribute(key, value),
-        Remove: () => parent.removeAttribute(key),
-        Update: delta => {
-          if (delta != null) {
-            parent.setAttribute(key, delta);
-          }
+  viewChanges.attrs.forEach((key, delta) => {
+    delta.cata({
+      Add: value => parent.setAttribute(key, value),
+      Remove: () => parent.removeAttribute(key),
+      Update: delta => {
+        if (delta != null) {
+          parent.setAttribute(key, delta);
         }
-      });
+      }
     });
-  }
+  });
 
-  if (viewChanges.handlers != null) {
-    viewChanges.handlers.forEach((key, delta) => {
-      delta.cata({
-        Add: value => null,
-        Remove: () => null,
-        Update: delta => {
-          console.group("EventHandler Update");
-          console.log("delta =", delta);
-          const old = view.handlers.get(key);
-          if (old != null) {
-            console.log("removeEventListener", key, old);
-            parent.removeEventListener(key, old.value, false);
-          }
-          delta.whenPresent(f => {
-            console.log("addEventListener", key, f);
-            parent.addEventListener(key, f, false);
-          });
-          console.groupEnd();
+  viewChanges.handlers.forEach((key, delta) => {
+    delta.cata({
+      Add: value => null,
+      Remove: () => null,
+      Update: delta => {
+        console.group("EventHandler Update");
+        console.log("delta =", delta);
+        const old = view.handlers.get(key);
+        if (old != null) {
+          console.log("removeEventListener", key, old);
+          parent.removeEventListener(key, old.value, false);
         }
-      });
+        delta.whenPresent(f => {
+          console.log("addEventListener", key, f);
+          parent.addEventListener(key, f, false);
+        });
+        console.groupEnd();
+      }
     });
-  }
-  if (viewChanges.kids != null) {
-    let currentKids = view.kids;
-    viewChanges.kids.forEach((delta, index) => {
-      delta.cata({
-        InsertAt: (index, childView) => {
-          console.group("Child Insert");
-          console.log("index =", index);
-          console.log("child =", childView);
-          const elementAtIndex = parent.children[index];
-          const newNode = document.createDocumentFragment();
-          render(newNode, childView);
-          if (elementAtIndex != null) {
-            parent.insertBefore(newNode, elementAtIndex);
-          } else {
-            parent.appendChild(newNode);
-          }
-          currentKids = currentKids.patch([delta]);
-          console.groupEnd();
-        },
-        ModifyAt: (index, value) => {
-          applyPatch(parent.children[index], currentKids.get(index), value);
-        },
-        DeleteAt: index => {}
-      });
+  });
+
+  let currentKids = view.kids;
+  viewChanges.kids.forEach((delta, index) => {
+    delta.cata({
+      InsertAt: (index, childView) => {
+        console.group("Child Insert");
+        console.log("index =", index);
+        console.log("child =", childView);
+        const elementAtIndex = parent.children[index];
+        const newNode = document.createDocumentFragment();
+        render(newNode, childView);
+        if (elementAtIndex != null) {
+          parent.insertBefore(newNode, elementAtIndex);
+        } else {
+          parent.appendChild(newNode);
+        }
+        currentKids = currentKids.patch([delta]);
+        console.groupEnd();
+      },
+      ModifyAt: (index, value) => {
+        applyPatch(parent.children[index], currentKids.get(index), value);
+      },
+      DeleteAt: index => {}
     });
-  }
+  });
+
   console.groupEnd();
 };
 
