@@ -1,3 +1,5 @@
+/** @jsx createElement */
+
 import * as Atomic from "./Atomic";
 import * as IObject from "./Object";
 import * as IArray from "./Array";
@@ -12,6 +14,45 @@ type Component model eff
   -> Jet model
   -> Jet (View eff)
 */
+
+const createElement = (name, props, ...children) => {
+  const handlers =
+    props == null
+      ? {}
+      : Object.fromEntries(
+          Object.entries(props)
+            .filter(([k, v]) => k.startsWith("on"))
+            .map(([k, v]) => [k.substring(2).toLowerCase(), v])
+        );
+  const attrs =
+    props == null
+      ? {}
+      : Object.fromEntries(
+          Object.entries(props).filter(([k, v]) => !k.startsWith("on"))
+        );
+
+  const kids = children.map(child => {
+    if (typeof child === "string") return IDom.text(Atomic.of(child).asJet());
+    return child;
+  });
+
+  console.log("createElement", { name, attrs, handlers, kids });
+  return IDom.element(
+    name,
+    IObject.of(attrs).asJet(),
+    IObject.staticJet(handlers),
+    IArray.staticJet(kids)
+  );
+};
+
+const JsxCounter = (change, model) => {
+  const onClick = (f, current) => f(Atomic.replace(current + 1));
+  return (
+    <button onClick={Atomic.Jet.lift2(onClick, change, model)}>
+      {IDom.text(model.map(count => "Current value = " + count))}
+    </button>
+  );
+};
 
 const Counter = (change, model) => {
   console.group("Counter");
@@ -83,7 +124,7 @@ const listOf = (dflt, component) => (change, xs) => {
 };
 
 export const mount = (root, init = 0) =>
-  IDom.run(root, Counter, Atomic.of(init));
+  IDom.run(root, JsxCounter, Atomic.of(init));
 
 export const mountList = root =>
   IDom.run(root, listOf(Atomic.of(0), Counter), IArray.of([]));

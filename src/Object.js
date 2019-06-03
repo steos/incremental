@@ -86,6 +86,8 @@ export const Jet = ObjectJet;
 
 export const empty = IObject.empty;
 
+export const of = xs => new IObject(xs);
+
 export const staticJet = xs => {
   // console.log("IMap.staticJet", xs);
   return new ObjectJet(
