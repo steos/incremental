@@ -12,32 +12,30 @@ export class Tuple {
     return new Tuple(this.fst.append(fst), this.snd.append(snd));
   }
   asJet(velocity = null) {
-    return new Jet(this, velocity);
+    return new TupleJet(this, velocity);
   }
 }
 
-export class Jet {
+class TupleJet {
   constructor(position, velocity) {
     this.position = position;
-    this.velocity = velocity;
+    this.velocity =
+      velocity == null
+        ? new Tuple(
+            position.fst.asJet().velocity,
+            position.snd.asJet().velocity
+          )
+        : velocity;
   }
   fst() {
-    return new Jet(
-      this.position.fst,
-      this.velocity != null
-        ? this.velocity.fst
-        : this.position.fst.asJet().velocity
-    );
+    return this.position.fst.asJet(this.velocity.fst);
   }
   snd() {
-    return new Jet(
-      this.position.snd,
-      this.velocity != null
-        ? this.velocity.snd
-        : this.position.fst.asJet().velocity
-    );
+    return this.position.snd.asJet(this.velocity.snd);
   }
 }
+
+export const Jet = TupleJet;
 
 export const of = (a, b) => new Tuple(a, b);
 

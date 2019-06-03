@@ -15,17 +15,17 @@ export class Atomic {
   }
 
   asJet(velocity = null) {
-    return new Jet(this, velocity);
+    return new AtomicJet(this, velocity);
   }
 }
 
-export class Jet {
+class AtomicJet {
   constructor(position, velocity) {
     this.position = position;
     this.velocity = Last.of(velocity);
   }
   map(f) {
-    return new Jet(this.position.fmap(f), this.velocity.fmap(f));
+    return new AtomicJet(this.position.fmap(f), this.velocity.fmap(f));
   }
   static lift2(f, a, b) {
     console.log("Atomic.Jet.lift2", a, b);
@@ -45,6 +45,8 @@ export class Jet {
     };
   }
 }
+
+export const Jet = AtomicJet;
 
 export const replace = x => Last.of(x);
 

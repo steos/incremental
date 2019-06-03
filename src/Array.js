@@ -42,7 +42,7 @@ export class IArray {
   }
 
   asJet(velocity = null) {
-    return new Jet(this, velocity);
+    return new ArrayJet(this, velocity);
   }
 
   unwrap() {
@@ -56,7 +56,7 @@ export class IArray {
   static empty = new IArray([]);
 }
 
-export class Jet {
+class ArrayJet {
   constructor(position, velocity) {
     this.position = position;
     this.velocity = velocity == null ? [] : velocity;
@@ -68,7 +68,7 @@ export class Jet {
     const f0 = x => f({ position: x, velocity: null }).position;
 
     if (velocity == null) {
-      return new Jet(position.map(f0), null);
+      return new ArrayJet(position.map(f0), null);
     }
 
     const f1 = (position, velocity) => f(position.asJet(velocity)).velocity;
@@ -106,7 +106,7 @@ export class Jet {
     ).value.filter(x => x != null);
 
     console.groupEnd();
-    return new Jet(position.map(f0), f_updates.concat(xs_updates));
+    return new ArrayJet(position.map(f0), f_updates.concat(xs_updates));
   }
 
   withIndex() {
@@ -152,24 +152,15 @@ export class Jet {
     console.log("position_ = ", position_);
     console.log("velocity_ = ", velocity_);
     console.groupEnd();
-    return new Jet(position_, velocity_);
+    return new ArrayJet(position_, velocity_);
   }
 
   mapWithIndex(f) {
-    const { position, velocity } = this;
-    const indexed = this.withIndex();
-    console.log("Atomic.Jet.mapWithIndex indexed =", indexed);
-
-    const a_ = indexed.map(t => {
-      console.log("Atomic.Jet.mapWithIndex uncurry", f, t);
-
-      const uncurried = ITuple.uncurry(f, t);
-      console.log("uncurried =", uncurried);
-    });
-    console.log("Atomic.Jet.mapWithIndex ret =", a_);
-    return a_;
+    return this.withIndex().map(t => ITuple.uncurry(f, t));
   }
 }
+
+export const Jet = ArrayJet;
 
 export const of = xs => new IArray(xs);
 
@@ -186,7 +177,7 @@ export const singleton = ({ position, velocity }) => {
 
 // Array (Jet a) -> Jet (IArray a)
 export const staticJet = xs => {
-  return new Jet(
+  return new ArrayJet(
     new IArray(xs.map(({ position }) => position)),
     xs.map(({ velocity }, index) => ArrayChange.ModifyAt(index, velocity))
   );

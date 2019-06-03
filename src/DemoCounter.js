@@ -54,10 +54,12 @@ const listOf = (dflt, component) => (change, xs) => {
         "ol",
         xs.mapWithIndex((index, x) => {
           //TODO
-          console.log("list item", index, x);
+          console.group("list item");
+          console.log("index =", index);
+          console.log("item =", x);
           const changeAt = (i_, change_) => c =>
             change_(IArray.modifyAt(i_, c));
-          return IDom.element_(
+          const elem = IDom.element_(
             "li",
             IArray.staticJet([
               component(Atomic.Jet.lift2(changeAt, index, change), x),
@@ -69,6 +71,8 @@ const listOf = (dflt, component) => (change, xs) => {
               )
             ])
           );
+          console.groupEnd();
+          return elem;
         })
       )
     ])

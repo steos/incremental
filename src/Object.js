@@ -69,24 +69,26 @@ export class IObject {
   }
 
   asJet(velocity = null) {
-    return new Jet(this, velocity);
+    return new ObjectJet(this, velocity);
   }
 
   static empty = new IObject({});
 }
 
-export class Jet {
+class ObjectJet {
   constructor(position, velocity) {
     this.position = position;
     this.velocity = velocity;
   }
 }
 
+export const Jet = ObjectJet;
+
 export const empty = IObject.empty;
 
 export const staticJet = xs => {
   // console.log("IMap.staticJet", xs);
-  return new Jet(
+  return new ObjectJet(
     new IObject(JsObject.map(x => x.position, xs)),
     new ObjectChanges(
       JsObject.map(({ velocity }) => ObjectChange.Update(velocity), xs)
