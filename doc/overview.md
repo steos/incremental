@@ -158,6 +158,26 @@ jetMapAtomic(count => 'The number is ' + count, {position: new Atomic(1), veloci
 
 ```
 
+### Example of mapping over an array and its change description:
+
+```
+jetMapArray(n => 'The number is ' + n, {
+  position: IArray.of([
+    new Atomic(1),
+    new Atomic(2)
+  ]),
+   velocity: [InsertAt(2, new Atomic(3))]
+})
+
+// --> {
+//     position: IArray([
+//         'The number is 1',
+//         'The number is 2'
+//       ]),
+//     velocity: [InsertAt(2, new Atomic('The number is 3'))]
+//  })
+```
+
 ## purview
 
 At the core of purview is a data structure to describe a DOM element and another to describe the changes to a DOM element. Those are the [`View`](<(https://github.com/paf31/purescript-purview/blob/7031081163f0bd6c131099b8bbcfc38af51579d5/src/Purview.purs#L48)>) and [`ViewChanges`](<(https://github.com/paf31/purescript-purview/blob/7031081163f0bd6c131099b8bbcfc38af51579d5/src/Purview.purs#L59)>) types.
