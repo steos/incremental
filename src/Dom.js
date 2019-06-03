@@ -102,8 +102,11 @@ const render = (parent, view) => {
   console.group("IDom.render");
   console.log("view =", view);
   const elem = document.createElement(view.element);
-  const text = document.createTextNode(view.text.value);
-  elem.appendChild(text);
+  if (view.text.value.length > 0) {
+    const text = document.createTextNode(view.text.value);
+    elem.appendChild(text);
+  }
+
   view.attrs.forEach((key, { value }) => {
     elem.setAttribute(key, value);
   });
@@ -164,6 +167,8 @@ const applyPatch = (parent, view, viewChanges) => {
         Add: value => null,
         Remove: () => null,
         Update: delta => {
+          console.group("EventHandler Update");
+          console.log("delta =", delta);
           const old = view.handlers.get(key);
           if (old != null) {
             console.log("removeEventListener", key, old);
@@ -173,16 +178,32 @@ const applyPatch = (parent, view, viewChanges) => {
             console.log("addEventListener", key, f);
             parent.addEventListener(key, f, false);
           });
+          console.groupEnd();
         }
       });
     });
   }
   if (viewChanges.kids != null) {
+    let currentKids = view.kids;
     viewChanges.kids.forEach((delta, index) => {
       delta.cata({
-        InsertAt: (index, value) => {},
+        InsertAt: (index, childView) => {
+          console.group("Child Insert");
+          console.log("index =", index);
+          console.log("child =", childView);
+          const elementAtIndex = parent.children[index];
+          const newNode = document.createDocumentFragment();
+          render(newNode, childView);
+          if (elementAtIndex != null) {
+            parent.insertBefore(newNode, elementAtIndex);
+          } else {
+            parent.appendChild(newNode);
+          }
+          currentKids = currentKids.patch([delta]);
+          console.groupEnd();
+        },
         ModifyAt: (index, value) => {
-          applyPatch(parent.children[index], view.kids.get(index), value);
+          applyPatch(parent.children[index], currentKids.get(index), value);
         },
         DeleteAt: index => {}
       });
