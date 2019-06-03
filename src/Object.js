@@ -68,22 +68,30 @@ export class IObject {
     return this.value[k];
   }
 
+  asJet(velocity = null) {
+    return new Jet(this, velocity);
+  }
+
   static empty = new IObject({});
 }
 
-export const emptyJet = {
-  position: IObject.empty,
-  velocity: null
-};
+export class Jet {
+  constructor(position, velocity) {
+    this.position = position;
+    this.velocity = velocity;
+  }
+}
+
+export const empty = IObject.empty;
 
 export const staticJet = xs => {
   // console.log("IMap.staticJet", xs);
-  return {
-    position: new IObject(JsObject.map(x => x.position, xs)),
-    velocity: new ObjectChanges(
+  return new Jet(
+    new IObject(JsObject.map(x => x.position, xs)),
+    new ObjectChanges(
       JsObject.map(({ velocity }) => ObjectChange.Update(velocity), xs)
     )
-  };
+  );
 };
 
 export const singleton = (k, v) => {

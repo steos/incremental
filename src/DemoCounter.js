@@ -15,17 +15,15 @@ type Component model eff
 
 const Counter = (change, model) => {
   console.group("Counter");
-  console.log(change);
-  console.log(model);
+  console.log("change =", change);
+  console.log("model =", model);
   const onClick = (f, current) => f(Atomic.replace(current + 1));
 
   const elem = IDom.element(
     "button",
-    IObject.emptyJet,
-    IObject.singleton("click", Atomic.jetLift2(onClick, change, model)),
-    IArray.singleton(
-      IDom.text(Atomic.jetMap(count => `Current value = ${count}`, model))
-    )
+    IObject.empty.asJet(),
+    IObject.singleton("click", Atomic.Jet.lift2(onClick, change, model)),
+    IArray.singleton(IDom.text(model.map(count => `Current value = ${count}`)))
   );
 
   console.groupEnd();
@@ -38,26 +36,23 @@ const Counter = (change, model) => {
 //   -> Component model eff
 //   -> Component (IArray model) eff
 const listOf = (dflt, component) => (change, xs) => {
-  // TODO
-  console.log("listOf xs =", xs);
+  console.group("listOf");
+  console.log("model =", xs);
 
-  const addCounter = Atomic.jetMap(
-    change_ => change_(IArray.insertAt(0, dflt)),
-    change
-  );
+  const addCounter = change.map(change_ => change_(IArray.insertAt(0, dflt)));
 
-  return IDom.element_(
+  const elem = IDom.element_(
     "div",
     IArray.staticJet([
       IDom.element(
         "button",
-        IObject.emptyJet,
+        IObject.empty.asJet(),
         IObject.singleton("click", addCounter),
-        IArray.singleton(IDom.text(Atomic.jetConstant("Add")))
+        IArray.singleton(IDom.text(Atomic.of("Add").asJet()))
       ),
       IDom.element_(
         "ol",
-        IArray.jetMapWithIndex((index, x) => {
+        xs.mapWithIndex((index, x) => {
           //TODO
           console.log("list item", index, x);
           const changeAt = (i_, change_) => c =>
@@ -65,19 +60,22 @@ const listOf = (dflt, component) => (change, xs) => {
           return IDom.element_(
             "li",
             IArray.staticJet([
-              component(Atomic.jetLift2(changeAt, index, change), x),
+              component(Atomic.Jet.lift2(changeAt, index, change), x),
               IDom.element(
                 "button",
-                IMap.emptyJet,
-                IMap.emptyJet,
-                IArray.singleton(IDom.text(Atomic.of("Remove")))
+                IObject.empty.asJet(),
+                IObject.empty.asJet(),
+                IArray.singleton(IDom.text(Atomic.of("Remove").asJet()))
               )
             ])
           );
-        }, xs)
+        })
       )
     ])
   );
+
+  console.groupEnd();
+  return elem;
 };
 
 export const mount = (root, init = 0) =>

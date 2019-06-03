@@ -75,19 +75,25 @@ const view = (tagName, text, attrs, handlers, kids) => ({
 });
 
 export const element = (tagName, attrs, handlers, kids) =>
-  view(tagName, Atomic.jetConstant(""), attrs, handlers, kids);
+  view(tagName, Atomic.of("").asJet(), attrs, handlers, kids);
 
 export const element_ = (tagName, kids) =>
   view(
     tagName,
-    Atomic.jetConstant(""),
-    IObject.emptyJet,
-    IObject.emptyJet,
+    Atomic.of("").asJet(),
+    IObject.empty.asJet(),
+    IObject.empty.asJet(),
     kids
   );
 
 export const textWith = (tagName, s) =>
-  view(tagName, s, IObject.emptyJet, IObject.emptyJet, IArray.emptyJet);
+  view(
+    tagName,
+    s,
+    IObject.empty.asJet(),
+    IObject.empty.asJet(),
+    IArray.empty.asJet()
+  );
 
 export const text = s => textWith("span", s);
 
@@ -227,13 +233,10 @@ export const run = (root, component, initialModel) => {
 
   const update = (m, dm) =>
     // console.log("run.update", m, dm) ||
-    component(Atomic.jetConstant(onChange), { position: m, velocity: dm })
-      .velocity;
+    component(Atomic.of(onChange).asJet(), m.asJet(dm)).velocity;
 
-  currentView = component(
-    Atomic.jetConstant(onChange),
-    initialModel.asJetConstant()
-  ).position;
+  currentView = component(Atomic.of(onChange).asJet(), initialModel.asJet())
+    .position;
 
   // console.log("run.currentView", currentView);
 

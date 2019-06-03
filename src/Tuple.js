@@ -11,39 +11,34 @@ export class Tuple {
   append({ fst, snd }) {
     return new Tuple(this.fst.append(fst), this.snd.append(snd));
   }
+  asJet(velocity = null) {
+    return new Jet(this, velocity);
+  }
 }
 
-// -- | Extract the first component of a `Tuple`, incrementally.
-// forall a da b db. Patch a da => Patch b db => Jet (Tuple a b) -> Jet a
-const fst = ({ position, velocity }) => ({
-  position: position.fst,
-  velocity: velocity != null ? velocity.fst : null
-});
-
-// -- | Extract the second component of a `Tuple`, incrementally.
-// forall a da b db. Patch a da => Patch b db => Jet (Tuple a b) -> Jet b
-const snd = ({ position, velocity }) => ({
-  position: position.snd,
-  velocity: velocity != null ? velocity.snd : null
-});
+export class Jet {
+  constructor(position, velocity) {
+    this.position = position;
+    this.velocity = velocity;
+  }
+  fst() {
+    return new Jet(
+      this.position.fst,
+      this.velocity != null
+        ? this.velocity.fst
+        : this.position.fst.asJet().velocity
+    );
+  }
+  snd() {
+    return new Jet(
+      this.position.snd,
+      this.velocity != null
+        ? this.velocity.snd
+        : this.position.fst.asJet().velocity
+    );
+  }
+}
 
 export const of = (a, b) => new Tuple(a, b);
 
-// -- | Construct a `Tuple`, incrementally.
-// tuple :: forall a da b db. Patch a da => Patch b db => Jet a -> Jet b -> Jet (Tuple a b)
-// tuple a b =
-//   { position: Tuple a.position b.position
-//   , velocity: toChange (Tuple (fromChange a.velocity) (fromChange b.velocity))
-//   }
-
-// -- | Uncurry an incremental function.
-// uncurry
-//   :: forall a da b db c
-//    . Patch a da
-//   => Patch b db
-//   => (Jet a -> Jet b -> Jet c)
-//   -> Jet (Tuple a b)
-//   -> Jet c
-// uncurry f t = f (fst t) (snd t)
-
-export const uncurry = (f, t) => f(fst(t), snd(t));
+export const uncurry = (f, t) => f(t.fst(), t.snd());

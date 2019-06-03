@@ -41,8 +41,8 @@ export class IArray {
     return this.xs[i];
   }
 
-  asJetConstant() {
-    return jetConstant(this.xs);
+  asJet(velocity = null) {
+    return new Jet(this, velocity);
   }
 
   unwrap() {
@@ -56,7 +56,124 @@ export class IArray {
   static empty = new IArray([]);
 }
 
+export class Jet {
+  constructor(position, velocity) {
+    this.position = position;
+    this.velocity = velocity == null ? [] : velocity;
+  }
+  map(f) {
+    const { position, velocity } = this;
+    console.group("IArray.Jet.map");
+    console.log({ position, velocity });
+    const f0 = x => f({ position: x, velocity: null }).position;
+
+    if (velocity == null) {
+      return new Jet(position.map(f0), null);
+    }
+
+    const f1 = (position, velocity) => f(position.asJet(velocity)).velocity;
+
+    // go :: Array a -> ArrayChange a da -> { accum :: Array a, value :: Maybe (ArrayChange b db) }
+    const go = (xs, delta) =>
+      delta.cata({
+        InsertAt: (index, x) => ({
+          accum: JsArray.insertAt(index, x, xs),
+          value: ArrayChange.InsertAt(index, f(x.asJet()).position)
+        }),
+        DeleteAt: index => ({
+          accum: JsArray.deleteAt(index, xs),
+          value: delta
+        }),
+        ModifyAt: (index, dx) => ({
+          accum: JsArray.modifyAt(index, x => x.patch(dx), xs),
+          value:
+            0 <= index && index < xs.length
+              ? ArrayChange.ModifyAt(index, f1(xs[index], dx))
+              : null
+        })
+      });
+
+    const f_updates = position
+      .map((x, index) => ArrayChange.ModifyAt(index, f(x.asJet()).velocity))
+      .unwrap();
+
+    // xs_updates :: Array (ArrayChange b db)
+    // xs_updates = Array.catMaybes (mapAccumL go xs (fromChange dxs)).value
+    const xs_updates = JsArray.mapAccumL(
+      go,
+      position.unwrap(),
+      velocity
+    ).value.filter(x => x != null);
+
+    console.groupEnd();
+    return new Jet(position.map(f0), f_updates.concat(xs_updates));
+  }
+
+  withIndex() {
+    const { position, velocity } = this;
+    console.group("IArray.Jet.withIndex");
+    console.log("position =", position);
+    console.log("velocity =", velocity);
+
+    const len0 = position.length();
+    const go = (len, delta) =>
+      delta.cata({
+        InsertAt: (i, a) => ({
+          accum: len + 1,
+          value: [ArrayChange.InsertAt(i, ITuple.of(Atomic.of(i), a))].concat(
+            JsArray.range(i + 1, len).map(j =>
+              ArrayChange.ModifyAt(j, ITuple.of(Atomic.of(j), null))
+            )
+          )
+        }),
+        DeleteAt: i => ({
+          accum: len - 1,
+          value: [ArrayChange.DeleteAt(i)].concat(
+            JsArray.range(i, len - 2).map(j =>
+              ArrayChange.ModifyAt(j, ITuple.of(Atomic.of(j), null))
+            )
+          )
+        }),
+        ModifyAt: (i, da) => ({
+          accum: len,
+          value: [ArrayChange.ModifyAt(i, ITuple.of(null, da))]
+        })
+      });
+
+    const position_ = position.map((x, i) => ITuple.of(i, x));
+    const velocity_ =
+      velocity != null
+        ? JsArray.mapAccumL(go, len0, velocity).value.reduce(
+            (a, b) => a.concat(b),
+            []
+          )
+        : null;
+
+    console.log("position_ = ", position_);
+    console.log("velocity_ = ", velocity_);
+    console.groupEnd();
+    return new Jet(position_, velocity_);
+  }
+
+  mapWithIndex(f) {
+    const { position, velocity } = this;
+    const indexed = this.withIndex();
+    console.log("Atomic.Jet.mapWithIndex indexed =", indexed);
+
+    const a_ = indexed.map(t => {
+      console.log("Atomic.Jet.mapWithIndex uncurry", f, t);
+
+      const uncurried = ITuple.uncurry(f, t);
+      console.log("uncurried =", uncurried);
+    });
+    console.log("Atomic.Jet.mapWithIndex ret =", a_);
+    return a_;
+  }
+}
+
 export const of = xs => new IArray(xs);
+
+export const empty = IArray.empty;
 
 export const singleton = ({ position, velocity }) => {
   return {
@@ -65,21 +182,19 @@ export const singleton = ({ position, velocity }) => {
   };
 };
 
-export const emptyJet = { position: IArray.empty, velocity: [] };
+// export const emptyJet = { position: IArray.empty, velocity: [] };
 
 // Array (Jet a) -> Jet (IArray a)
 export const staticJet = xs => {
-  return {
-    position: new IArray(xs.map(({ position }) => position)),
-    velocity: xs.map(({ velocity }, index) =>
-      ArrayChange.ModifyAt(index, velocity)
-    )
-  };
+  return new Jet(
+    new IArray(xs.map(({ position }) => position)),
+    xs.map(({ velocity }, index) => ArrayChange.ModifyAt(index, velocity))
+  );
 };
 
-export const jetConstant = xs => {
-  return { position: new IArray(xs), velocity: null };
-};
+// export const jetConstant = xs => {
+//   return { position: new IArray(xs), velocity: null };
+// };
 
 // forall a da. Patch a da => Int -> a -> Change (IArray a)
 export const insertAt = (i, v) => [ArrayChange.InsertAt(i, v)];
@@ -89,138 +204,3 @@ export const deleteAt = i => [ArrayChange.DeleteAt(i)];
 
 // forall a da. Patch a da => Int -> Change a -> Change (IArray a)
 export const modifyAt = (i, c) => [ArrayChange.ModifyAt(i, c)];
-
-// forall a b da db
-//    . Patch a da
-//   => Patch b db
-//   => (Jet a -> Jet b)
-//   -> Jet (IArray a)
-//   -> Jet (IArray b)
-export const jetMap = (f, { position, velocity }) => {
-  console.group("IArray.jetMap");
-  console.log({ position, velocity });
-  const f0 = x => f({ position: x, velocity: null }).position;
-
-  if (velocity == null) {
-    return { position: position.map(f0), velocity: null };
-  }
-
-  const f1 = (position, velocity) => f({ position, velocity }).velocity;
-
-  // go :: Array a -> ArrayChange a da -> { accum :: Array a, value :: Maybe (ArrayChange b db) }
-  const go = (xs, delta) =>
-    delta.cata({
-      InsertAt: (index, x) => ({
-        accum: JsArray.insertAt(index, x, xs),
-        value: ArrayChange.InsertAt(
-          index,
-          f({ position: x, velocity: null }).position
-        )
-      }),
-      DeleteAt: index => ({
-        accum: JsArray.deleteAt(index, xs),
-        value: delta
-      }),
-      ModifyAt: (index, dx) => ({
-        accum: JsArray.modifyAt(index, x => x.patch(dx), xs),
-        value:
-          0 <= index && index < xs.length
-            ? ArrayChange.ModifyAt(index, f1(xs[index], dx))
-            : null
-      })
-    });
-
-  const f_updates = velocity.map((x, index) =>
-    ArrayChange.ModifyAt(index, f({ position: x, velocity: null }).velocity)
-  );
-
-  // xs_updates :: Array (ArrayChange b db)
-  // xs_updates = Array.catMaybes (mapAccumL go xs (fromChange dxs)).value
-  const xs_updates = JsArray.mapAccumL(
-    go,
-    position.unwrap(),
-    velocity
-  ).value.filter(x => x != null);
-
-  console.groupEnd();
-  return {
-    position: position.map(f0),
-    velocity: f_updates.concat(xs_updates)
-  };
-};
-
-// :: forall a da
-// . Patch a da
-// => Jet (IArray a)
-// -> Jet (IArray (Tuple (Atomic Int) a))
-const withIndex = ({ position, velocity }) => {
-  console.group("IArray.withIndex");
-  console.log("position =", position);
-  console.log("velocity =", velocity);
-
-  const len0 = position.length();
-  const go = (len, delta) =>
-    delta.cata({
-      InsertAt: (i, a) => ({
-        accum: len + 1,
-        value: [ArrayChange.InsertAt(i, ITuple.of(Atomic.of(i), a))].concat(
-          JsArray.range(i + 1, len).map(j =>
-            ArrayChange.ModifyAt(j, ITuple.of(Atomic.of(j), null))
-          )
-        )
-      }),
-      DeleteAt: i => ({
-        accum: len - 1,
-        value: [ArrayChange.DeleteAt(i)].concat(
-          JsArray.range(i, len - 2).map(j =>
-            ArrayChange.ModifyAt(j, ITuple.of(Atomic.of(j), null))
-          )
-        )
-      }),
-      ModifyAt: (i, da) => ({
-        accum: len,
-        value: [ArrayChange.ModifyAt(i, ITuple.of(null, da))]
-      })
-    });
-
-  const position_ = position.map((x, i) => ITuple.of(i, x));
-  const velocity_ =
-    velocity != null
-      ? JsArray.mapAccumL(go, len0, velocity).value.reduce(
-          (a, b) => a.concat(b),
-          []
-        )
-      : null;
-
-  console.log("position_ = ", position_);
-  console.log("velocity_ = ", velocity_);
-  console.groupEnd();
-  return {
-    position: position_,
-    velocity: velocity_
-  };
-};
-
-// forall a da b db
-//    . Patch a da
-//   => Patch b db
-//   => (Jet (Atomic Int) -> Jet a -> Jet b)
-//   -> Jet (IArray a)
-//   -> Jet (IArray b)
-export const jetMapWithIndex = (f, a) => {
-  const indexed = withIndex(a);
-  console.log("indexed =", indexed);
-
-  const a_ = jetMap(t => {
-    console.log("uncurry", f, t);
-    if (!(t instanceof ITuple.Tuple)) {
-      console.error("Expected Tuple but got:", t);
-      throw new TypeError();
-    }
-
-    const uncurried = ITuple.uncurry(f, t);
-    console.log("uncurried =", uncurried);
-  }, indexed);
-  console.log("jetMapWithIndex ret =", a_);
-  return a_;
-};

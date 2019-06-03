@@ -14,45 +14,38 @@ export class Atomic {
     return new Atomic(f(this.value));
   }
 
-  asJetConstant() {
-    return jetConstant(this.value);
+  asJet(velocity = null) {
+    return new Jet(this, velocity);
+  }
+}
+
+export class Jet {
+  constructor(position, velocity) {
+    this.position = position;
+    this.velocity = Last.of(velocity);
+  }
+  map(f) {
+    return new Jet(this.position.fmap(f), this.velocity.fmap(f));
+  }
+  static lift2(f, a, b) {
+    console.log("Atomic.Jet.lift2", a, b);
+    const va = a.velocity;
+    const vb = b.velocity;
+    return {
+      position: new Atomic(f(a.position.value, b.position.value)),
+      velocity:
+        va.isNone() && vb.isNone()
+          ? Last.of(null)
+          : Last.of(
+              f(
+                va.getWithDefault(a.position.value),
+                vb.getWithDefault(b.position.value)
+              )
+            )
+    };
   }
 }
 
 export const replace = x => Last.of(x);
 
 export const of = x => new Atomic(x);
-
-// :: forall a b c
-//  . (a -> b -> c)
-// -> Jet (Atomic a)
-// -> Jet (Atomic b)
-// -> Jet (Atomic c)
-export const jetLift2 = (f, a, b) => {
-  console.log("Atomic.jetLift2", a, b);
-  const va = Last.of(a.velocity);
-  const vb = Last.of(b.velocity);
-  return {
-    position: new Atomic(f(a.position.value, b.position.value)),
-    velocity:
-      va.isNone() && vb.isNone()
-        ? null
-        : Last.of(
-            f(
-              va.getWithDefault(a.position.value),
-              vb.getWithDefault(b.position.value)
-            )
-          )
-  };
-};
-
-export const jetMap = (f, { position, velocity }) => {
-  return {
-    position: position.fmap(f),
-    velocity: Last.of(velocity).fmap(f)
-  };
-};
-
-export const jetConstant = x => {
-  return { position: new Atomic(x), velocity: null };
-};
