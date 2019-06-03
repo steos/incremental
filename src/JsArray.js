@@ -48,7 +48,7 @@ export const mapAccumL = (f, x0, xs) => {
 
 export const range = (from, to) => {
   const xs = [];
-  for (const i = from; i <= to; ++i) {
+  for (let i = from; i <= to; ++i) {
     xs.push(i);
   }
   return xs;

@@ -164,14 +164,15 @@ const applyPatch = (parent, view, viewChanges) => {
       Add: value => null,
       Remove: () => null,
       Update: delta => {
-        console.group("EventHandler Update");
-        console.log("delta =", delta);
-        const old = view.handlers.get(key);
-        if (old != null) {
-          console.log("removeEventListener", key, old);
-          parent.removeEventListener(key, old.value, false);
-        }
         delta.whenPresent(f => {
+          console.group("EventHandler Update");
+          console.log("delta =", delta);
+
+          const old = view.handlers.get(key);
+          if (old != null) {
+            console.log("removeEventListener", key, old);
+            parent.removeEventListener(key, old.value, false);
+          }
           console.log("addEventListener", key, f);
           parent.addEventListener(key, f, false);
         });

@@ -45,20 +45,19 @@ const createElement = (name, props, ...children) => {
   );
 };
 
-const JsxCounter = (change, model) => {
-  const onClick = (f, current) => f(Atomic.replace(current + 1));
-  return (
-    <button onClick={Atomic.Jet.lift2(onClick, change, model)}>
-      {IDom.text(model.map(count => "Current value = " + count))}
-    </button>
-  );
-};
+const onClick = (f, current) => f(Atomic.replace(current + 1));
+
+const JsxCounter = (change, model) => (
+  <button onClick={Atomic.Jet.lift2(onClick, change, model)}>
+    {IDom.text(model.map(count => "Current value = " + count))}
+  </button>
+);
 
 const Counter = (change, model) => {
   console.group("Counter");
   console.log("change =", change);
   console.log("model =", model);
-  const onClick = (f, current) => f(Atomic.replace(current + 1));
+  const onClick = (f, current) => e => f(Atomic.replace(current + 1))();
 
   const elem = IDom.element(
     "button",
@@ -79,6 +78,7 @@ const Counter = (change, model) => {
 const listOf = (dflt, component) => (change, xs) => {
   console.group("listOf");
   console.log("model =", xs);
+  console.log("change =", change);
 
   const addCounter = change.map(change_ => change_(IArray.insertAt(0, dflt)));
 
