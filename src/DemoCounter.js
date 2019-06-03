@@ -100,10 +100,16 @@ const listOf = (dflt, component) => (change, xs) => {
           console.log("item =", x);
           const changeAt = (i_, change_) => c =>
             change_(IArray.modifyAt(i_, c));
-          const elem = IDom.element_(
+
+          const componentElem = component(
+            Atomic.Jet.lift2(changeAt, index, change),
+            x
+          );
+          console.log("componentElem =", componentElem);
+          const li = IDom.element_(
             "li",
             IArray.staticJet([
-              component(Atomic.Jet.lift2(changeAt, index, change), x),
+              componentElem,
               IDom.element(
                 "button",
                 IObject.empty.asJet(),
@@ -112,8 +118,9 @@ const listOf = (dflt, component) => (change, xs) => {
               )
             ])
           );
+          console.log("liElem =", li);
           console.groupEnd();
-          return elem;
+          return li;
         })
       )
     ])

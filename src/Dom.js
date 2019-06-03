@@ -25,6 +25,16 @@ class View {
       this.kids.patch(kids)
     );
   }
+  asJet(velocity = null) {
+    return new ViewJet(this, velocity);
+  }
+}
+
+class ViewJet {
+  constructor(position, velocity) {
+    this.position = position;
+    this.velocity = velocity == null ? ViewChanges.empty() : velocity;
+  }
 }
 
 class ViewChanges {
@@ -58,21 +68,22 @@ class ViewChanges {
 // -> Jet (IMap String (Atomic (EventListener eff)))
 // -> Jet (IArray (View eff))
 // -> Jet (View eff)
-const view = (tagName, text, attrs, handlers, kids) => ({
-  position: new View(
-    tagName,
-    text.position,
-    attrs.position,
-    handlers.position,
-    kids.position
-  ),
-  velocity: new ViewChanges(
-    text.velocity,
-    attrs.velocity,
-    handlers.velocity,
-    kids.velocity
-  )
-});
+const view = (tagName, text, attrs, handlers, kids) =>
+  new ViewJet(
+    new View(
+      tagName,
+      text.position,
+      attrs.position,
+      handlers.position,
+      kids.position
+    ),
+    new ViewChanges(
+      text.velocity,
+      attrs.velocity,
+      handlers.velocity,
+      kids.velocity
+    )
+  );
 
 export const element = (tagName, attrs, handlers, kids) =>
   view(tagName, Atomic.of("").asJet(), attrs, handlers, kids);

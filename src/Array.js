@@ -64,8 +64,9 @@ class ArrayJet {
   map(f) {
     const { position, velocity } = this;
     console.group("IArray.Jet.map");
+    console.log(f);
     console.log({ position, velocity });
-    const f0 = x => f({ position: x, velocity: null }).position;
+    const f0 = x => f(x.asJet()).position;
 
     if (velocity == null) {
       return new ArrayJet(position.map(f0), null);
@@ -74,12 +75,24 @@ class ArrayJet {
     const f1 = (position, velocity) => f(position.asJet(velocity)).velocity;
 
     // go :: Array a -> ArrayChange a da -> { accum :: Array a, value :: Maybe (ArrayChange b db) }
-    const go = (xs, delta) =>
-      delta.cata({
-        InsertAt: (index, x) => ({
-          accum: JsArray.insertAt(index, x, xs),
-          value: ArrayChange.InsertAt(index, f(x.asJet()).position)
-        }),
+    const go = (xs, delta) => {
+      console.group("ArrayJet.map.go");
+      console.log("delta =", delta);
+      const ret = delta.cata({
+        InsertAt: (index, x) => {
+          console.group("InsertAt");
+          console.log("x =", x);
+          const jet = x.asJet();
+          console.log("jet =", jet);
+          const fjet = f(jet);
+          console.log("f(x.asJet()) = ", fjet);
+          const ret2 = {
+            accum: JsArray.insertAt(index, x, xs),
+            value: ArrayChange.InsertAt(index, fjet.position)
+          };
+          console.groupEnd();
+          return ret2;
+        },
         DeleteAt: index => ({
           accum: JsArray.deleteAt(index, xs),
           value: delta
@@ -92,6 +105,9 @@ class ArrayJet {
               : null
         })
       });
+      console.groupEnd();
+      return ret;
+    };
 
     const f_updates = position
       .map((x, index) => ArrayChange.ModifyAt(index, f(x.asJet()).velocity))
@@ -140,7 +156,7 @@ class ArrayJet {
         })
       });
 
-    const position_ = position.map((x, i) => ITuple.of(i, x));
+    const position_ = position.map((x, i) => ITuple.of(Atomic.of(i), x));
     const velocity_ =
       velocity != null
         ? JsArray.mapAccumL(go, len0, velocity).value.reduce(
@@ -156,7 +172,10 @@ class ArrayJet {
   }
 
   mapWithIndex(f) {
-    return this.withIndex().map(t => t.uncurry(f));
+    return this.withIndex().map(t => {
+      console.log("t =", t);
+      return t.uncurry(f);
+    });
   }
 }
 

@@ -4,7 +4,6 @@ export class Tuple {
     this.snd = snd;
   }
   patch(delta) {
-    if (delta == null) return this;
     const { fst, snd } = delta;
     return new Tuple(this.fst.patch(fst), this.snd.patch(snd));
   }
@@ -18,6 +17,8 @@ export class Tuple {
 
 class TupleJet {
   constructor(position, velocity) {
+    console.group("TupleJet.constructor");
+    console.log("position = ", position);
     this.position = position;
     this.velocity =
       velocity == null
@@ -26,6 +27,7 @@ class TupleJet {
             position.snd.asJet().velocity
           )
         : velocity;
+    console.groupEnd();
   }
   fst() {
     return this.position.fst.asJet(this.velocity.fst);
@@ -34,7 +36,11 @@ class TupleJet {
     return this.position.snd.asJet(this.velocity.snd);
   }
   uncurry(f) {
-    return f(this.fst(), this.snd());
+    console.log("uncurry = ", f);
+    const [fst, snd] = [this.fst(), this.snd()];
+    console.log("fst =", fst);
+    console.log("snd = ", snd);
+    return f(fst, snd);
   }
 }
 

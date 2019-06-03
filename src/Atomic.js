@@ -31,18 +31,17 @@ class AtomicJet {
     console.log("Atomic.Jet.lift2", a, b);
     const va = a.velocity;
     const vb = b.velocity;
-    return {
-      position: new Atomic(f(a.position.value, b.position.value)),
-      velocity:
-        va.isNone() && vb.isNone()
-          ? Last.of(null)
-          : Last.of(
-              f(
-                va.getWithDefault(a.position.value),
-                vb.getWithDefault(b.position.value)
-              )
+    return new AtomicJet(
+      new Atomic(f(a.position.value, b.position.value)),
+      va.isNone() && vb.isNone()
+        ? Last.of(null)
+        : Last.of(
+            f(
+              va.getWithDefault(a.position.value),
+              vb.getWithDefault(b.position.value)
             )
-    };
+          )
+    );
   }
 }
 
