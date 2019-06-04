@@ -1,7 +1,6 @@
-/** @jsx createElement */
+/** @jsx IDom.createElement */
 
 import * as Atomic from "./Atomic";
-import * as IObject from "./Object";
 import * as IArray from "./Array";
 import * as IDom from "./Dom";
 
@@ -14,53 +13,6 @@ type Component model eff
   -> Jet model
   -> Jet (View eff)
 */
-
-const createElement = (name, props, ...children) => {
-  // console.group("createElement");
-  // console.log({ name, props, children });
-  if (typeof name === "function") {
-    return name(props.change, props.model);
-  }
-  const handlers =
-    props == null
-      ? {}
-      : Object.fromEntries(
-          Object.entries(props)
-            .filter(([k, v]) => k.startsWith("on"))
-            .map(([k, v]) => [k.substring(2).toLowerCase(), v])
-        );
-  const attrs =
-    props == null
-      ? {}
-      : Object.fromEntries(
-          Object.entries(props).filter(([k, v]) => !k.startsWith("on"))
-        );
-
-  const jets = children.filter(child => child instanceof IArray.Jet);
-  let kids = null;
-  if (jets.length > 0) {
-    if (jets.length !== children.length || jets.length > 1) throw new Error();
-    kids = jets[0];
-  } else {
-    kids = IArray.staticJet(
-      children.map(child => {
-        if (typeof child === "string")
-          return IDom.text(Atomic.of(child).asJet());
-        if (child instanceof Atomic.Jet) return IDom.text(child);
-        return child;
-      })
-    );
-  }
-
-  // console.groupEnd();
-  // console.log("createElement", { name, attrs, handlers, kids });
-  return IDom.element(
-    name,
-    IObject.of(attrs).asJet(),
-    IObject.staticJet(handlers),
-    kids
-  );
-};
 
 const lift2 = Atomic.Jet.lift2;
 
