@@ -107,9 +107,7 @@ const listOfJsx = (dflt, component) => (change, xs) => {
 };
 
 const JsxCounterList = (change, xs) => {
-  const addCounter = change.map(change_ =>
-    change_(IArray.insertAt(0, Atomic.of(1)))
-  );
+  const addCounter = change.apply(IArray.insertAt(0, Atomic.of(1)));
   return (
     <div>
       <button onClick={addCounter}>Add</button>

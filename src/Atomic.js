@@ -32,6 +32,12 @@ class AtomicJet {
   map(f) {
     return new AtomicJet(this.position.fmap(f), this.velocity.fmap(f));
   }
+  apply(x) {
+    return new AtomicJet(
+      this.position.fmap(f => f(x)),
+      this.velocity.fmap(f => f(x))
+    );
+  }
   static lift2(f, a, b) {
     // console.log("Atomic.Jet.lift2", a, b);
     const va = a.velocity;
