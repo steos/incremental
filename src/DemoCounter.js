@@ -36,7 +36,7 @@ const createElement = (name, props, ...children) => {
     return child;
   });
 
-  console.log("createElement", { name, attrs, handlers, kids });
+  // console.log("createElement", { name, attrs, handlers, kids });
   return IDom.element(
     name,
     IObject.of(attrs).asJet(),
@@ -54,9 +54,9 @@ const JsxCounter = (change, model) => (
 );
 
 const Counter = (change, model) => {
-  console.group("Counter");
-  console.log("change =", change);
-  console.log("model =", model);
+  // console.group("Counter");
+  // console.log("change =", change);
+  // console.log("model =", model);
   const onClick = (f, current) => e => f(Atomic.replace(current + 1))();
 
   const elem = IDom.element(
@@ -66,7 +66,7 @@ const Counter = (change, model) => {
     IArray.singleton(IDom.text(model.map(count => `Current value = ${count}`)))
   );
 
-  console.groupEnd();
+  // console.groupEnd();
   return elem;
 };
 
@@ -76,9 +76,9 @@ const Counter = (change, model) => {
 //   -> Component model eff
 //   -> Component (IArray model) eff
 const listOf = (dflt, component) => (change, xs) => {
-  console.group("listOf");
-  console.log("model =", xs);
-  console.log("change =", change);
+  // console.group("listOf");
+  // console.log("model =", xs);
+  // console.log("change =", change);
 
   const addCounter = change.map(change_ => change_(IArray.insertAt(0, dflt)));
 
@@ -126,7 +126,7 @@ const listOf = (dflt, component) => (change, xs) => {
     ])
   );
 
-  console.groupEnd();
+  // console.groupEnd();
   return elem;
 };
 

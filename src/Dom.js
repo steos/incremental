@@ -110,8 +110,8 @@ export const text = s => textWith("span", s);
 
 const render = (parent, view) => {
   // console.log("render", view);
-  console.group("IDom.render");
-  console.log("view =", view);
+  // console.group("IDom.render");
+  // console.log("view =", view);
   const elem = document.createElement(view.element);
   if (view.text.value.length > 0) {
     const text = document.createTextNode(view.text.value);
@@ -126,7 +126,7 @@ const render = (parent, view) => {
   });
   view.kids.forEach(kid => render(elem, kid));
   parent.appendChild(elem);
-  console.groupEnd();
+  // console.groupEnd();
 };
 
 /*
@@ -150,9 +150,9 @@ applyPatch
   -> Eff (dom :: DOM | eff) Unit
 */
 const applyPatch = (parent, view, viewChanges) => {
-  console.group("applyPatch");
-  console.log(view);
-  console.log(viewChanges);
+  // console.group("applyPatch");
+  // console.log(view);
+  // console.log(viewChanges);
 
   Last.of(viewChanges.text).whenPresent(textContent => {
     parent.textContent = textContent;
@@ -176,18 +176,18 @@ const applyPatch = (parent, view, viewChanges) => {
       Remove: () => null,
       Update: delta => {
         delta.whenPresent(f => {
-          console.group("EventHandler Update");
-          console.log("delta =", delta);
+          // console.group("EventHandler Update");
+          // console.log("delta =", delta);
 
           const old = view.handlers.get(key);
           if (old != null) {
-            console.log("removeEventListener", key, old);
+            // console.log("removeEventListener", key, old);
             parent.removeEventListener(key, old.value, false);
           }
-          console.log("addEventListener", key, f);
+          // console.log("addEventListener", key, f);
           parent.addEventListener(key, f, false);
         });
-        console.groupEnd();
+        // console.groupEnd();
       }
     });
   });
@@ -196,9 +196,9 @@ const applyPatch = (parent, view, viewChanges) => {
   viewChanges.kids.forEach((delta, index) => {
     delta.cata({
       InsertAt: (index, childView) => {
-        console.group("Child Insert");
-        console.log("index =", index);
-        console.log("child =", childView);
+        // console.group("Child Insert");
+        // console.log("index =", index);
+        // console.log("child =", childView);
         const elementAtIndex = parent.children[index];
         const newNode = document.createDocumentFragment();
         render(newNode, childView);
@@ -208,7 +208,7 @@ const applyPatch = (parent, view, viewChanges) => {
           parent.appendChild(newNode);
         }
         currentKids = currentKids.patch([delta]);
-        console.groupEnd();
+        // console.groupEnd();
       },
       ModifyAt: (index, value) => {
         applyPatch(parent.children[index], currentKids.get(index), value);
@@ -217,7 +217,7 @@ const applyPatch = (parent, view, viewChanges) => {
     });
   });
 
-  console.groupEnd();
+  // console.groupEnd();
 };
 
 /*
@@ -240,10 +240,10 @@ export const run = (root, component, initialModel) => {
   let currentModel = initialModel;
 
   const onChange = modelChange => () => {
-    console.group("onChange");
-    console.log("modelChange =", modelChange);
-    console.log("currentModel =", currentModel);
-    console.log("currentView = ", currentView);
+    // console.group("onChange");
+    // console.log("modelChange =", modelChange);
+    // console.log("currentModel =", currentModel);
+    // console.log("currentView = ", currentView);
     // console.log("run.onChange.currentView", currentView);
 
     const nextModel = currentModel.patch(modelChange);
@@ -253,11 +253,11 @@ export const run = (root, component, initialModel) => {
     const nextView = currentView.patch(viewChange);
     // console.log("run.onChange.nextView", nextView);
     applyPatch(root.children[0], currentView, viewChange);
-    console.log("viewChange =", viewChange);
-    console.log("nextModel =", nextModel);
+    // console.log("viewChange =", viewChange);
+    // console.log("nextModel =", nextModel);
     currentModel = nextModel;
     currentView = nextView;
-    console.groupEnd();
+    // console.groupEnd();
   };
 
   const update = (m, dm) =>
