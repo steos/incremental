@@ -2,6 +2,7 @@ import daggy from "daggy";
 import * as JsArray from "./JsArray";
 import * as ITuple from "./Tuple";
 import * as Atomic from "./Atomic";
+import { Last } from "./Optional";
 
 export const ArrayChange = daggy.taggedSum("ArrayChange", {
   InsertAt: ["index", "value"],
@@ -104,11 +105,14 @@ class ArrayJet {
       change.cata({
         InsertAt: (index, val) => {
           velocity.push(
-            ArrayChange.InsertAt(index, ITuple.of(Atomic.of(index), val))[0]
+            ArrayChange.InsertAt(index, ITuple.of(Atomic.of(index), val))
           );
           JsArray.range(index + 1, len).forEach(j => {
             velocity.push(
-              ArrayChange.ModifyAt(j, ITuple.of(Atomic.of(j), null))
+              ArrayChange.ModifyAt(
+                j,
+                ITuple.of(Last.of(j), val.asJet().velocity)
+              )
             );
           });
           len = len + 1;
@@ -116,14 +120,12 @@ class ArrayJet {
         DeleteAt: index => {
           velocity.push(ArrayChange.DeleteAt(index));
           JsArray.range(index, len - 2).forEach(j =>
-            velocity.push(
-              ArrayChange.ModifyAt(j, ITuple.of(Atomic.of(j), null))
-            )
+            velocity.push(ArrayChange.ModifyAt(j, ITuple.of(Last.of(j), null)))
           );
           len = len - 1;
         },
         ModifyAt: (index, delta) => {
-          velocity.push(ArrayChange.InsertAt(index, ITuple.of(null, delta)));
+          velocity.push(ArrayChange.ModifyAt(index, ITuple.of(null, delta)));
         }
       })
     );
