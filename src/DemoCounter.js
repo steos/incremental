@@ -62,6 +62,8 @@ const createElement = (name, props, ...children) => {
   );
 };
 
+const lift2 = Atomic.Jet.lift2;
+
 const onClick = (signal, current) => signal(Atomic.replace(current + 1));
 
 const JsxCounter = (signal, model) => (
@@ -69,42 +71,6 @@ const JsxCounter = (signal, model) => (
     Current value = {model}
   </button>
 );
-
-const Counter = (change, model) => {
-  // console.group("Counter");
-  // console.log("change =", change);
-  // console.log("model =", model);
-  const onClick = (f, current) => e => f(Atomic.replace(current + 1))();
-
-  const elem = IDom.element(
-    "button",
-    IObject.empty.asJet(),
-    IObject.singleton("click", Atomic.Jet.lift2(onClick, change, model)),
-    IArray.singleton(IDom.text(model.map(count => `Current value = ${count}`)))
-  );
-
-  // console.groupEnd();
-  return elem;
-};
-
-const listOfJsx = (dflt, component) => (change, xs) => {
-  const addCounter = change.map(change_ => change_(IArray.insertAt(0, dflt)));
-  return (
-    <div>
-      <button onClick={addCounter}>Add</button>
-      <ol>
-        {xs.mapWithIndex((index, x) => {
-          const changeAt = (i_, change_) => c =>
-            change_(IArray.modifyAt(i_, c));
-
-          return (
-            <li>{component(Atomic.Jet.lift2(changeAt, index, change), x)}</li>
-          );
-        })}
-      </ol>
-    </div>
-  );
-};
 
 const changeAt = (signal, index) => count =>
   signal(IArray.modifyAt(index, count));
@@ -122,77 +88,15 @@ const JsxCounterList = (signal, counts) => {
             <li>
               <JsxCounter
                 model={count}
-                change={Atomic.Jet.lift2(changeAt, signal, index)}
+                change={lift2(changeAt, signal, index)}
               />
-              <button onClick={Atomic.Jet.lift2(deleteAt, signal, index)}>
-                Remove
-              </button>
+              <button onClick={lift2(deleteAt, signal, index)}>Remove</button>
             </li>
           );
         })}
       </ol>
     </div>
   );
-};
-
-// forall model change eff
-//    . Patch model change
-//   => model
-//   -> Component model eff
-//   -> Component (IArray model) eff
-const listOf = (dflt, component) => (change, xs) => {
-  // console.group("listOf");
-  // console.log("model =", xs);
-  // console.log("change =", change);
-
-  const addCounter = change.map(change_ => change_(IArray.insertAt(0, dflt)));
-
-  const elem = IDom.element_(
-    "div",
-    IArray.staticJet([
-      IDom.element(
-        "button",
-        IObject.empty.asJet(),
-        IObject.singleton("click", addCounter),
-        IArray.singleton(IDom.text(Atomic.of("Add").asJet()))
-      ),
-      IDom.element_(
-        "ol",
-        xs.mapWithIndex((index, x) => {
-          //TODO
-          // console.group("list item");
-          // console.log("index =", index);
-          // console.log("item =", x);
-          const changeAt = (i_, change_) => c =>
-            change_(IArray.modifyAt(i_, c));
-
-          const componentElem = component(
-            Atomic.Jet.lift2(changeAt, index, change),
-            x
-          );
-          // console.log("componentElem =", componentElem);
-          const li = IDom.element_(
-            "li",
-            IArray.staticJet([
-              componentElem,
-              IDom.element(
-                "button",
-                IObject.empty.asJet(),
-                IObject.empty.asJet(),
-                IArray.singleton(IDom.text(Atomic.of("Remove").asJet()))
-              )
-            ])
-          );
-          // console.log("liElem =", li);
-          // console.groupEnd();
-          return li;
-        })
-      )
-    ])
-  );
-
-  // console.groupEnd();
-  return elem;
 };
 
 export const mount = (root, init = 0) =>
