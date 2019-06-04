@@ -193,7 +193,7 @@ const applyPatch = (parent, view, viewChanges) => {
   });
 
   let currentKids = view.kids;
-  viewChanges.kids.forEach((delta, index) => {
+  viewChanges.kids.forEach(delta => {
     delta.cata({
       InsertAt: (index, childView) => {
         // console.group("Child Insert");
@@ -212,8 +212,17 @@ const applyPatch = (parent, view, viewChanges) => {
       },
       ModifyAt: (index, value) => {
         applyPatch(parent.children[index], currentKids.get(index), value);
+        currentKids = currentKids.patch([delta]);
       },
-      DeleteAt: index => {}
+      DeleteAt: index => {
+        // console.group("Child Delete");
+        // console.log("index =", index);
+        const node = parent.children[index];
+        // console.log("node =", node);
+        if (node != null) parent.removeChild(node);
+        currentKids = currentKids.patch([delta]);
+        // console.groupEnd();
+      }
     });
   });
 

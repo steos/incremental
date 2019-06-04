@@ -106,22 +106,27 @@ const listOfJsx = (dflt, component) => (change, xs) => {
   );
 };
 
-const JsxCounterList = (change, xs) => {
-  const addCounter = change.apply(IArray.insertAt(0, Atomic.of(1)));
+const changeAt = (signal, index) => count =>
+  signal(IArray.modifyAt(index, count));
+
+const deleteAt = (signal, index) => signal(IArray.deleteAt(index));
+
+const JsxCounterList = (signal, counts) => {
+  const addCounter = signal.apply(IArray.insertAt(0, Atomic.of(1)));
   return (
     <div>
       <button onClick={addCounter}>Add</button>
       <ol>
-        {xs.mapWithIndex((index, x) => {
-          const changeAt = (i_, change_) => c =>
-            change_(IArray.modifyAt(i_, c));
-
+        {counts.mapWithIndex((index, count) => {
           return (
             <li>
               <JsxCounter
-                model={x}
-                change={Atomic.Jet.lift2(changeAt, index, change)}
+                model={count}
+                change={Atomic.Jet.lift2(changeAt, signal, index)}
               />
+              <button onClick={Atomic.Jet.lift2(deleteAt, signal, index)}>
+                Remove
+              </button>
             </li>
           );
         })}
