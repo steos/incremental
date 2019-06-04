@@ -16,6 +16,8 @@ type Component model eff
 */
 
 const createElement = (name, props, ...children) => {
+  // console.group("createElement");
+  // console.log({ name, props, children });
   const handlers =
     props == null
       ? {}
@@ -31,17 +33,29 @@ const createElement = (name, props, ...children) => {
           Object.entries(props).filter(([k, v]) => !k.startsWith("on"))
         );
 
-  const kids = children.map(child => {
-    if (typeof child === "string") return IDom.text(Atomic.of(child).asJet());
-    return child;
-  });
+  const jets = children.filter(child => child instanceof IArray.Jet);
+  let kids = null;
+  if (jets.length > 0) {
+    if (jets.length !== children.length || jets.length > 1) throw new Error();
+    kids = jets[0];
+  } else {
+    kids = IArray.staticJet(
+      children.map(child => {
+        if (typeof child === "string")
+          return IDom.text(Atomic.of(child).asJet());
+        if (child instanceof Atomic.Jet) return IDom.text(child);
+        return child;
+      })
+    );
+  }
 
+  // console.groupEnd();
   // console.log("createElement", { name, attrs, handlers, kids });
   return IDom.element(
     name,
     IObject.of(attrs).asJet(),
     IObject.staticJet(handlers),
-    IArray.staticJet(kids)
+    kids
   );
 };
 
@@ -49,7 +63,7 @@ const onClick = (f, current) => f(Atomic.replace(current + 1));
 
 const JsxCounter = (change, model) => (
   <button onClick={Atomic.Jet.lift2(onClick, change, model)}>
-    {IDom.text(model.map(count => "Current value = " + count))}
+    {model.map(count => "Current value = " + count)}
   </button>
 );
 
@@ -68,6 +82,25 @@ const Counter = (change, model) => {
 
   // console.groupEnd();
   return elem;
+};
+
+const listOfJsx = (dflt, component) => (change, xs) => {
+  const addCounter = change.map(change_ => change_(IArray.insertAt(0, dflt)));
+  return (
+    <div>
+      <button onClick={addCounter}>Add</button>
+      <ol>
+        {xs.mapWithIndex((index, x) => {
+          const changeAt = (i_, change_) => c =>
+            change_(IArray.modifyAt(i_, c));
+
+          return (
+            <li>{component(Atomic.Jet.lift2(changeAt, index, change), x)}</li>
+          );
+        })}
+      </ol>
+    </div>
+  );
 };
 
 // forall model change eff
@@ -134,4 +167,4 @@ export const mount = (root, init = 0) =>
   IDom.run(root, JsxCounter, Atomic.of(init));
 
 export const mountList = root =>
-  IDom.run(root, listOf(Atomic.of(0), Counter), IArray.of([]));
+  IDom.run(root, listOfJsx(Atomic.of(0), JsxCounter), IArray.of([]));

@@ -3,7 +3,7 @@ import * as IArray from "./Array";
 import * as Atomic from "./Atomic";
 import { Last } from "./Optional";
 
-class View {
+export class View {
   constructor(element, text, attrs, handlers, kids) {
     this.element = element;
     // Atomic String
@@ -30,14 +30,14 @@ class View {
   }
 }
 
-class ViewJet {
+export class ViewJet {
   constructor(position, velocity) {
     this.position = position;
     this.velocity = velocity == null ? ViewChanges.empty() : velocity;
   }
 }
 
-class ViewChanges {
+export class ViewChanges {
   constructor(text, attrs, handlers, kids) {
     // Last String
     this.text = text;
@@ -235,12 +235,14 @@ run
   -> Eff (dom :: DOM, ref :: REF | eff) Unit
 */
 export const run = (root, component, initialModel) => {
-  // console.log("run", initialModel);
+  // console.group("IDom.run");
+  // console.log("component =", component);
+  // console.log("model = ", initialModel);
   let currentView = null;
   let currentModel = initialModel;
 
   const onChange = modelChange => () => {
-    // console.group("onChange");
+    // console.group("IDom.run.onChange");
     // console.log("modelChange =", modelChange);
     // console.log("currentModel =", currentModel);
     // console.log("currentView = ", currentView);
@@ -267,6 +269,8 @@ export const run = (root, component, initialModel) => {
   currentView = component(Atomic.of(onChange).asJet(), initialModel.asJet())
     .position;
 
+  // console.log("view = ", currentView);
+
   // console.log("run.currentView", currentView);
 
   while (root.lastChild) {
@@ -274,4 +278,5 @@ export const run = (root, component, initialModel) => {
   }
 
   render(root, currentView);
+  // console.groupEnd();
 };
