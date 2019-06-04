@@ -1,6 +1,7 @@
 import test from "ava";
 import * as IArray from "./Array";
 import * as Atomic from "./Atomic";
+import * as ITuple from "./Tuple";
 import { Jet, insertAt, of } from "./Array";
 
 const _1 = Atomic.of(1);
@@ -35,6 +36,28 @@ test("IArray.Jet.map", t => {
     new Jet(
       of([_1, _2].map(a => a.fmap(n => "n = " + n))),
       insertAt(0, Atomic.of("n = 3"))
+    )
+  );
+});
+
+test("IArray.Jet.withIndex", t => {
+  const a = of([_1, _2])
+    .asJet()
+    .withIndex();
+  const tup = (a, b) => ITuple.of(Atomic.of(a), b);
+  t.deepEqual(a, new Jet(of([tup(0, _1), tup(1, _2)])));
+});
+
+test("IArray.Jet.mapWithIndex", t => {
+  const a = of([_1, _2])
+    .asJet()
+    .mapWithIndex((index, value) =>
+      Atomic.Jet.lift2((i, v) => `index = ${i} value = ${v}`, index, value)
+    );
+  t.deepEqual(
+    a,
+    new Jet(
+      of([Atomic.of("index = 0 value = 1"), Atomic.of("index = 1 value = 2")])
     )
   );
 });

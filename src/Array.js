@@ -14,7 +14,7 @@ export class IArray {
     this.xs = xs;
   }
   patch(deltas) {
-    console.log("IArray.patch", deltas);
+    // console.log("IArray.patch", deltas);
     const xs = this.xs.concat([]);
     deltas.forEach(delta =>
       delta.cata({
@@ -94,49 +94,41 @@ class ArrayJet {
   }
 
   withIndex() {
-    const { position, velocity } = this;
-    // console.group("IArray.Jet.withIndex");
-    // console.log("position =", position);
-    // console.log("velocity =", velocity);
+    const len0 = this.position.length();
 
-    const len0 = position.length();
-    const go = (len, delta) =>
-      delta.cata({
-        InsertAt: (i, a) => ({
-          accum: len + 1,
-          value: [ArrayChange.InsertAt(i, ITuple.of(Atomic.of(i), a))].concat(
-            JsArray.range(i + 1, len).map(j =>
+    const position = this.position.map((x, i) => ITuple.of(Atomic.of(i), x));
+
+    let len = len0;
+    const velocity = [];
+    this.velocity.forEach(change =>
+      change.cata({
+        InsertAt: (index, val) => {
+          velocity.push(
+            ArrayChange.InsertAt(index, ITuple.of(Atomic.of(index), val))[0]
+          );
+          JsArray.range(index + 1, len).forEach(j => {
+            velocity.push(
+              ArrayChange.ModifyAt(j, ITuple.of(Atomic.of(j), null))
+            );
+          });
+          len = len + 1;
+        },
+        DeleteAt: index => {
+          velocity.push(ArrayChange.DeleteAt(index));
+          JsArray.range(index, len - 2).forEach(j =>
+            velocity.push(
               ArrayChange.ModifyAt(j, ITuple.of(Atomic.of(j), null))
             )
-          )
-        }),
-        DeleteAt: i => ({
-          accum: len - 1,
-          value: [ArrayChange.DeleteAt(i)].concat(
-            JsArray.range(i, len - 2).map(j =>
-              ArrayChange.ModifyAt(j, ITuple.of(Atomic.of(j), null))
-            )
-          )
-        }),
-        ModifyAt: (i, da) => ({
-          accum: len,
-          value: [ArrayChange.ModifyAt(i, ITuple.of(null, da))]
-        })
-      });
+          );
+          len = len - 1;
+        },
+        ModifyAt: (index, delta) => {
+          velocity.push(ArrayChange.InsertAt(index, ITuple.of(null, delta)));
+        }
+      })
+    );
 
-    const position_ = position.map((x, i) => ITuple.of(Atomic.of(i), x));
-    const velocity_ =
-      velocity != null
-        ? JsArray.mapAccumL(go, len0, velocity).value.reduce(
-            (a, b) => a.concat(b),
-            []
-          )
-        : null;
-
-    // console.log("position_ = ", position_);
-    // console.log("velocity_ = ", velocity_);
-    // console.groupEnd();
-    return new ArrayJet(position_, velocity_);
+    return new ArrayJet(position, velocity);
   }
 
   mapWithIndex(f) {
