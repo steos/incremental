@@ -62,11 +62,11 @@ const createElement = (name, props, ...children) => {
   );
 };
 
-const onClick = (f, current) => f(Atomic.replace(current + 1));
+const onClick = (signal, current) => signal(Atomic.replace(current + 1));
 
-const JsxCounter = (change, model) => (
-  <button onClick={Atomic.Jet.lift2(onClick, change, model)}>
-    {model.map(count => "Current value = " + count)}
+const JsxCounter = (signal, model) => (
+  <button onClick={Atomic.Jet.lift2(onClick, signal, model)}>
+    Current value = {model}
   </button>
 );
 

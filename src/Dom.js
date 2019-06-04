@@ -113,9 +113,9 @@ const render = (parent, view) => {
   // console.group("IDom.render");
   // console.log("view =", view);
   const elem = document.createElement(view.element);
-  if (view.text.value.length > 0) {
-    const text = document.createTextNode(view.text.value);
-    elem.appendChild(text);
+  const text = view.text.value.toString();
+  if (text.length > 0) {
+    elem.appendChild(document.createTextNode(text));
   }
 
   view.attrs.forEach((key, { value }) => {
@@ -155,7 +155,7 @@ const applyPatch = (parent, view, viewChanges) => {
   // console.log(viewChanges);
 
   Last.of(viewChanges.text).whenPresent(textContent => {
-    parent.textContent = textContent;
+    parent.textContent = textContent.toString();
   });
 
   viewChanges.attrs.forEach((key, delta) => {
