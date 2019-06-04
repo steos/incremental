@@ -18,6 +18,9 @@ type Component model eff
 const createElement = (name, props, ...children) => {
   // console.group("createElement");
   // console.log({ name, props, children });
+  if (typeof name === "function") {
+    return name(props.change, props.model);
+  }
   const handlers =
     props == null
       ? {}
@@ -103,6 +106,32 @@ const listOfJsx = (dflt, component) => (change, xs) => {
   );
 };
 
+const JsxCounterList = (change, xs) => {
+  const addCounter = change.map(change_ =>
+    change_(IArray.insertAt(0, Atomic.of(1)))
+  );
+  return (
+    <div>
+      <button onClick={addCounter}>Add</button>
+      <ol>
+        {xs.mapWithIndex((index, x) => {
+          const changeAt = (i_, change_) => c =>
+            change_(IArray.modifyAt(i_, c));
+
+          return (
+            <li>
+              <JsxCounter
+                model={x}
+                change={Atomic.Jet.lift2(changeAt, index, change)}
+              />
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+};
+
 // forall model change eff
 //    . Patch model change
 //   => model
@@ -166,5 +195,4 @@ const listOf = (dflt, component) => (change, xs) => {
 export const mount = (root, init = 0) =>
   IDom.run(root, JsxCounter, Atomic.of(init));
 
-export const mountList = root =>
-  IDom.run(root, listOfJsx(Atomic.of(0), JsxCounter), IArray.of([]));
+export const mountList = root => IDom.run(root, JsxCounterList, IArray.of([]));
