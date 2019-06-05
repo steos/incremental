@@ -96,3 +96,34 @@ test("IArray.Jet.mapWithIndex + changes", t => {
     )
   );
 });
+
+test("fold", t => {
+  const a = of([_1, _2])
+    .asJet(insertAt(0, _3))
+    .fold(
+      (p, v) => new Atomic.Jet(Atomic.of(p), Last.of(v)),
+      (acc, next) => acc + next.value,
+      0,
+      (v, val) => v + val.value,
+      (v, next, prev) => v - prev.value + next.value,
+      (v, val) => v - val.value
+    );
+  t.deepEqual(a, new Atomic.Jet(Atomic.of(3), Last.of(6)));
+});
+
+test("fold2", t => {
+  const a = of([_1, _2])
+    .asJet([
+      IArray.ArrayChange.InsertAt(0, _3),
+      IArray.ArrayChange.ModifyAt(1, Last.of(7))
+    ])
+    .fold(
+      (p, v) => new Atomic.Jet(Atomic.of(p), Last.of(v)),
+      (acc, next) => acc + next.value,
+      0,
+      (v, val) => v + val.value,
+      (v, next, prev) => v - prev.value + next.value,
+      (v, val) => v - val.value
+    );
+  t.deepEqual(a, new Atomic.Jet(Atomic.of(3), Last.of(12)));
+});

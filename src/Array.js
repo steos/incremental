@@ -37,6 +37,10 @@ export class IArray {
     return new IArray(this.xs.map((x, i) => f(x, i)));
   }
 
+  reduce(f, x) {
+    return this.xs.reduce(f, x);
+  }
+
   get(i) {
     return this.xs[i];
   }
@@ -138,6 +142,40 @@ class ArrayJet {
       // console.log("t =", t);
       return t.uncurry(f);
     });
+  }
+
+  // fold(
+  //   (p,v) => new Atomic.Jet(p, Last.of(v)),
+  //   (acc,next) => acc + next.value),
+  //   0,
+  //   (v, val) => v + val.value
+  //   (v, next, prev) => v - prev.value + next.value
+  //   (v, val) => v - val.value
+
+  fold(jet, reducer, x0, insert, modify, remove) {
+    const p = this.position.reduce(reducer, x0);
+    const xs = [].concat(this.position.unwrap());
+    let v = p;
+    this.velocity.forEach(patch => {
+      patch.cata({
+        InsertAt: (index, val) => {
+          v = insert(v, val);
+          xs.splice(index, 0, val);
+        },
+        ModifyAt: (index, dx) => {
+          const oldVal = xs[index];
+          const newVal = xs[index].patch(dx);
+          v = modify(v, newVal, oldVal);
+          xs[index] = newVal;
+        },
+        DeleteAt: index => {
+          const val = xs[index];
+          v = remove(v, val);
+          xs.splice(index, 1);
+        }
+      });
+    });
+    return jet(p, v);
   }
 }
 
