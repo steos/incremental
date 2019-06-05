@@ -38,6 +38,12 @@ class AtomicJet {
       this.velocity.fmap(f => f(x))
     );
   }
+
+  // forall a b c
+  //  . (a -> b -> c)
+  // -> Jet (Atomic a)
+  // -> Jet (Atomic b)
+  // -> Jet (Atomic c)
   static lift2(f, a, b) {
     // console.log("Atomic.Jet.lift2", a, b);
     const va = a.velocity;
@@ -56,8 +62,22 @@ class AtomicJet {
   }
 }
 
+export const lift2 = f => (a, b) => f(a.value, b.value);
+
 export const Jet = AtomicJet;
 
 export const replace = x => Last.of(x);
 
 export const of = x => new Atomic(x);
+
+export const Fold = (f, g) => ({
+  jet(position, velocity) {
+    return new Jet(of(position), Last.of(velocity));
+  },
+  add(acc, x) {
+    return f(acc, x.value);
+  },
+  subtract(acc, x) {
+    return g(acc, x.value);
+  }
+});

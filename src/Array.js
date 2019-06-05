@@ -3,6 +3,7 @@ import * as JsArray from "./JsArray";
 import * as ITuple from "./Tuple";
 import * as Atomic from "./Atomic";
 import { Last } from "./Optional";
+import * as JsObject from "./JsObject";
 
 export const ArrayChange = daggy.taggedSum("ArrayChange", {
   InsertAt: ["index", "value"],
@@ -39,6 +40,10 @@ export class IArray {
 
   reduce(f, x) {
     return this.xs.reduce(f, x);
+  }
+
+  filter(f) {
+    return new IArray(this.xs.filter(x => f(x)));
   }
 
   get(i) {
@@ -144,38 +149,92 @@ class ArrayJet {
     });
   }
 
-  // fold(
-  //   (p,v) => new Atomic.Jet(p, Last.of(v)),
-  //   (acc,next) => acc + next.value),
-  //   0,
-  //   (v, val) => v + val.value
-  //   (v, next, prev) => v - prev.value + next.value
-  //   (v, val) => v - val.value
-
-  fold(jet, reducer, x0, insert, modify, remove) {
+  foldWith(x0, jet, reducer, vreducer) {
     const p = this.position.reduce(reducer, x0);
     const xs = [].concat(this.position.unwrap());
     let v = p;
     this.velocity.forEach(patch => {
+      v = vreducer(v, patch, xs);
+    });
+    return jet(p, v);
+  }
+
+  fold(fold, x0) {
+    return this.foldWith(x0, fold.jet, fold.add, (v, patch, xs) =>
       patch.cata({
         InsertAt: (index, val) => {
-          v = insert(v, val);
           xs.splice(index, 0, val);
+          return fold.add(v, val);
         },
         ModifyAt: (index, dx) => {
           const oldVal = xs[index];
           const newVal = xs[index].patch(dx);
-          v = modify(v, newVal, oldVal);
           xs[index] = newVal;
+          return fold.add(fold.subtract(v, oldVal), newVal);
         },
         DeleteAt: index => {
           const val = xs[index];
-          v = remove(v, val);
           xs.splice(index, 1);
+          return fold.subtract(v, val);
+        }
+      })
+    );
+  }
+
+  filter(f) {
+    const xs = [];
+    const removeCounts = [];
+    let removed = 0;
+    this.position.forEach(val => {
+      if (f(val)) {
+        xs.push(val);
+      } else {
+        removed++;
+      }
+      removeCounts.push(removed);
+    });
+    const position = of([].concat(xs));
+    const vel = [];
+
+    this.velocity.forEach(patch => {
+      patch.cata({
+        InsertAt: (index, val) => {
+          const removeCount = index > 0 ? removeCounts[index - 1] : 0;
+          if (f(val)) {
+            const newIndex = Math.max(0, index - removeCount);
+            vel.push(ArrayChange.InsertAt(Math.max(0, newIndex), val));
+          }
+          xs.splice(index, 0, val);
+          removeCounts.splice(index, 0, removeCount);
+        },
+        DeleteAt: index => {
+          const prevRemoveCount = index > 0 ? removeCounts[index - 1] : 0;
+          const removeCount = removeCounts[index];
+          if (prevRemoveCount === removeCount) {
+            vel.push(ArrayChange.DeleteAt(Math.max(0, index - removeCount)));
+          }
+
+          xs.splice(index, 1);
+          removeCounts.splice(index, 1);
+        },
+        ModifyAt: (index, dx) => {
+          const prevRemoveCount = index > 0 ? removeCounts[index - 1] : 0;
+          const removeCount = removeCounts[index];
+          const wasRemoved = prevRemoveCount < removeCount;
+
+          const x = xs[index - prevRemoveCount].patch(dx);
+          const matchesFilter = f(x);
+          if (matchesFilter && wasRemoved) {
+            vel.push(ArrayChange.InsertAt(index - prevRemoveCount, x));
+          }
+          if (!wasRemoved && !matchesFilter) {
+            vel.push(ArrayChange.DeleteAt(index - removeCount));
+          }
+          xs[index] = x;
         }
       });
     });
-    return jet(p, v);
+    return new Jet(position, vel);
   }
 }
 
