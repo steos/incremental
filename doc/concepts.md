@@ -1,7 +1,7 @@
 # Concepts
 
-The purview component model is similar to the elm architecture.
-Recall that in the elm architecture the view function takes a callback and a model and returns a view.
+The purview component model is similar to the Elm architecture.
+Recall that in the Elm architecture the view function takes a callback and a model and returns a view.
 
 ```js
 const view = (signal, model) => <div>{model}</div>;
@@ -22,7 +22,7 @@ new IArray.Jet(IArray.of([Atomic.of(1), Atomic.of(2)]), [
 ]);
 ```
 
-IArray and Atomic are patchable types.
+`IArray` and `Atomic` are patchable types.
 
 ### Patchable Types
 
@@ -50,8 +50,8 @@ ModifyAt(index, patch);
 ```
 
 Every array operation references a specific position in the array by index.
-InsertAt contains the value to insert (which can be any patchable type).
-ModifyAt contains a change description for the patchable type at that index.
+`InsertAt` contains the value to insert (which can be any patchable type).
+`ModifyAt` contains a change description for the patchable type at that index.
 
 ### Incremental array mapping
 
@@ -82,7 +82,7 @@ new IArray.Jet(
 ```
 
 So we need to apply the function to the value to be inserted, no big deal.
-It gets more tricky when we have to map a ModifyAt operation.
+It gets more tricky when we have to map a `ModifyAt` operation.
 Consider this array jet:
 
 ```js
@@ -91,7 +91,7 @@ new IArray.Jet(IArray.of([Atomic.of(1), Atomic.of(2)]), [
 ]);
 ```
 
-Note how we don't actually have a value in the ModifyAt operation but a change description for the item at the given index.
+Note how we don't actually have a value in the `ModifyAt` operation but a change description for the item at the given index.
 So the result of mapping the above function should be:
 
 ```js

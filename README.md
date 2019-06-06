@@ -2,9 +2,15 @@
 
 A JavaScript implementation of [purescript-purview](https://github.com/paf31/purescript-purview) and [purescript-incremental-functions](https://github.com/paf31/purescript-incremental-functions).
 
-## Getting Started
+## Documentation
 
-Read the [Overview](./doc/overview.md).
+- [Concepts](./doc/concepts.md)
+
+  An explanation of the concepts based on the JavaScript implementation.
+
+- [Purview Overview](./doc/overview.md)
+
+  A rough overview of the Purview Purescript implementation.
 
 ## Development
 
