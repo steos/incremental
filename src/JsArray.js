@@ -53,3 +53,41 @@ export const range = (from, to) => {
   }
   return xs;
 };
+
+export const binarySearch = (x, xs, compare) => {
+  if (xs.length === 0) return null;
+  if (xs.length === 1) return compare(x, xs[0]) === 0 ? 0 : null;
+  let lo = 0;
+  let hi = xs.length - 1;
+  while (lo < hi) {
+    const pivot = Math.floor((hi + lo) / 2);
+    const y = xs[pivot];
+    const c = compare(x, y);
+    if (c === 0) {
+      return pivot;
+    } else if (c < 0) {
+      hi = pivot - 1;
+    } else {
+      lo = pivot + 1;
+    }
+  }
+  if (compare(x, xs[lo]) === 0) {
+    return lo;
+  }
+  return null;
+};
+
+export const binarySearchRankL = (x, xs, compare) => {
+  let lo = 0;
+  let hi = xs.length;
+  while (lo < hi) {
+    const m = Math.floor((hi + lo) / 2);
+    const c = compare(x, xs[m]);
+    if (c > 0) {
+      lo = m + 1;
+    } else {
+      hi = m;
+    }
+  }
+  return lo;
+};

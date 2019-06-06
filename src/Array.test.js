@@ -267,3 +267,46 @@ test("Jet.filter <==> filter", t => {
   t.deepEqual(ys, of([_1337, _42, _23]));
   t.deepEqual(position.patch(velocity), ys);
 });
+
+test("Jet.sort with insert", t => {
+  const xs = of([_2, _1, _23, _3])
+    .asJet([InsertAt(1, _42)])
+    .sort((a, b) => a.value - b.value);
+
+  t.deepEqual(xs, new Jet(of([_1, _2, _3, _23]), [InsertAt(4, _42)]));
+});
+
+test("Jet.sort with modify", t => {
+  const xs = of([_2, _1, _23, _3])
+    .asJet([ModifyAt(1, Last.of(42))])
+    .sort((a, b) => a.value - b.value);
+
+  t.deepEqual(
+    xs,
+    new Jet(of([_1, _2, _3, _23]), [DeleteAt(0), InsertAt(3, _42)])
+  );
+});
+
+test("Jet.sort with delete", t => {
+  const xs = of([_2, _1, _23, _3])
+    .asJet([DeleteAt(2)])
+    .sort((a, b) => a.value - b.value);
+
+  t.deepEqual(xs, new Jet(of([_1, _2, _3, _23]), [DeleteAt(3)]));
+});
+
+test("Jet.sort with multiple changes", t => {
+  const xs = of([_2, _1, _23, _3])
+    .asJet([DeleteAt(2), InsertAt(0, _42), ModifyAt(3, Last.of(1337))])
+    .sort((a, b) => a.value - b.value);
+
+  t.deepEqual(
+    xs,
+    new Jet(of([_1, _2, _3, _23]), [
+      DeleteAt(3),
+      InsertAt(3, _42),
+      DeleteAt(2),
+      InsertAt(3, _1337)
+    ])
+  );
+});

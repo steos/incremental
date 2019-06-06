@@ -3,7 +3,6 @@ import * as JsArray from "./JsArray";
 import * as ITuple from "./Tuple";
 import * as Atomic from "./Atomic";
 import { Last } from "./Optional";
-import * as JsObject from "./JsObject";
 
 export const ArrayChange = daggy.taggedSum("ArrayChange", {
   InsertAt: ["index", "value"],
@@ -235,6 +234,42 @@ class ArrayJet {
       });
     });
     return new Jet(position, vel);
+  }
+
+  sort(compare) {
+    const xs = [].concat(this.position.unwrap());
+    xs.sort(compare);
+
+    const position = new IArray([].concat(xs));
+
+    const velocity = [];
+    this.velocity.forEach(patch => {
+      patch.cata({
+        InsertAt: (index, value) => {
+          const rank = JsArray.binarySearchRankL(value, xs, compare);
+          velocity.push(ArrayChange.InsertAt(rank, value));
+          xs.splice(rank, 0, value);
+        },
+        DeleteAt: index => {
+          const value = this.position.get(index);
+          const sortedIndex = JsArray.binarySearch(value, xs, compare);
+          if (sortedIndex == null) throw new Error();
+          velocity.push(ArrayChange.DeleteAt(sortedIndex));
+          xs.splice(sortedIndex, 1);
+        },
+        ModifyAt: (index, dx) => {
+          const oldValue = this.position.get(index);
+          const sortedIndex = JsArray.binarySearch(oldValue, xs, compare);
+          velocity.push(ArrayChange.DeleteAt(sortedIndex));
+          const newValue = oldValue.patch(dx);
+          xs.splice(sortedIndex, 1);
+          const rank = JsArray.binarySearchRankL(newValue, xs, compare);
+          velocity.push(ArrayChange.InsertAt(rank, newValue));
+          xs.splice(rank, 0, newValue);
+        }
+      });
+    });
+    return new Jet(position, velocity);
   }
 }
 
