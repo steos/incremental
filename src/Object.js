@@ -1,5 +1,6 @@
 import daggy from "daggy";
 import * as JsObject from "./JsObject";
+import * as IArray from "./Array";
 
 export const Change = daggy.taggedSum("ObjectChange", {
   Add: ["value"],
@@ -89,6 +90,42 @@ class ObjectJet {
       })
     );
     return new ObjectJet(of(position), velocity);
+  }
+
+  values() {
+    const position = [];
+    const indexes = {};
+    let index = 0;
+    JsObject.forEach(this.position.unwrap(), (key, value) => {
+      position.push(value);
+      indexes[key] = index++;
+    });
+    const velocity = [];
+    const temp = [].concat(position);
+    JsObject.forEach(this.velocity, (key, patch) =>
+      patch.cata({
+        Add: value => {
+          velocity.push(IArray.Change.InsertAt(temp.length, value));
+          temp.push(value);
+        },
+        Remove: () => {
+          const index = indexes[key];
+          velocity.push(IArray.Change.DeleteAt(index));
+          temp.splice(index, 1);
+          JsObject.forEach(indexes, (key, i) => {
+            if (i > index) {
+              indexes[key] = indexes[key] - 1;
+            }
+          });
+        },
+        Update: dx => {
+          const index = indexes[key];
+          velocity.push(IArray.Change.ModifyAt(index, dx));
+          temp[index] = temp[index].patch(dx);
+        }
+      })
+    );
+    return new IArray.Jet(IArray.of(position), velocity);
   }
 }
 

@@ -2,6 +2,7 @@ import test from "ava";
 import { Change, Jet, of } from "./Object";
 import * as Atomic from "./Atomic";
 import { Last } from "./Optional";
+import * as IArray from "./Array";
 
 const Add = Change.Add;
 const Remove = Change.Remove;
@@ -46,5 +47,24 @@ test("Jet.map", t => {
         quux: Add(atom("quux!"))
       }
     )
+  );
+});
+
+test("Jet.values", t => {
+  const x = of({ foo, bar, baz })
+    .asJet({
+      bar: Remove,
+      baz: Update(Last.of("aardvark")),
+      quux: Add(quux)
+    })
+    .values();
+
+  t.deepEqual(
+    x,
+    new IArray.Jet(IArray.of([foo, bar, baz]), [
+      IArray.Change.DeleteAt(1),
+      IArray.Change.ModifyAt(1, Last.of("aardvark")),
+      IArray.Change.InsertAt(2, quux)
+    ])
   );
 });
