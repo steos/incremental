@@ -2,6 +2,7 @@ import * as IObject from "./Object";
 import * as IArray from "./Array";
 import * as Atomic from "./Atomic";
 import { Last } from "./Optional";
+import * as JsObject from "./JsObject";
 
 export class View {
   constructor(element, text, attrs, handlers, kids) {
@@ -158,7 +159,7 @@ const applyPatch = (parent, view, viewChanges) => {
     parent.textContent = textContent.toString();
   });
 
-  viewChanges.attrs.forEach((key, delta) => {
+  JsObject.forEach(viewChanges.attrs, (key, delta) => {
     delta.cata({
       Add: value => parent.setAttribute(key, value),
       Remove: () => parent.removeAttribute(key),
@@ -170,7 +171,7 @@ const applyPatch = (parent, view, viewChanges) => {
     });
   });
 
-  viewChanges.handlers.forEach((key, delta) => {
+  JsObject.forEach(viewChanges.handlers, (key, delta) => {
     delta.cata({
       Add: value => null,
       Remove: () => null,

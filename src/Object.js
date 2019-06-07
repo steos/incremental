@@ -101,7 +101,7 @@ export const of = xs => new IObject(xs);
 export const staticJet = xs => {
   return new ObjectJet(
     new IObject(JsObject.map(x => x.position, xs)),
-    new Patch(JsObject.map(({ velocity }) => Change.Update(velocity), xs))
+    JsObject.map(({ velocity }) => Change.Update(velocity), xs)
   );
 };
 
