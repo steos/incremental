@@ -88,3 +88,24 @@ test("Jet.filter", t => {
     })
   );
 });
+
+test("Jet.map.filter.values.sort", t => {
+  const x = of({ foo, bar, baz })
+    .asJet({
+      bar: Remove,
+      baz: Update(Last.of("aardvark")),
+      quux: Add(quux)
+    })
+    .map(x => x.map(s => s.length))
+    .filter(x => x.value > 3)
+    .values()
+    .sort((a, b) => b.value - a.value);
+
+  t.deepEqual(
+    x,
+    new IArray.Jet(IArray.of([]), [
+      IArray.Change.InsertAt(0, atom(8)),
+      IArray.Change.InsertAt(1, atom(4))
+    ])
+  );
+});

@@ -170,6 +170,10 @@ class ObjectJet {
             } else {
               velocity[key] = Change.Remove;
             }
+          } else {
+            const val = this.position.get(key);
+            const newVal = val.patch(dx);
+            velocity[key] = Change.Add(newVal);
           }
         }
       });
