@@ -271,6 +271,38 @@ class ArrayJet {
     });
     return new Jet(position, velocity);
   }
+
+  take(n) {
+    const xs = this.position.unwrap().concat([]);
+    const position = new IArray(xs.slice(0, n));
+    const velocity = [];
+    this.velocity.forEach(patch =>
+      patch.cata({
+        InsertAt: (index, value) => {
+          if (index < n) {
+            velocity.push(ArrayChange.InsertAt(index, value));
+          }
+          xs.splice(index, value);
+        },
+        ModifyAt: (index, dx) => {
+          if (index < n) {
+            velocity.push(ArrayChange.ModifyAt(index, dx));
+          }
+          xs[index] = xs[index].patch(dx);
+        },
+        DeleteAt: index => {
+          if (index < n) {
+            velocity.push(ArrayChange.DeleteAt(index));
+            if (n < xs.length) {
+              velocity.push(ArrayChange.InsertAt(n - 1, xs[n]));
+            }
+          }
+          xs.splice(index, 1);
+        }
+      })
+    );
+    return new Jet(position, velocity);
+  }
 }
 
 export const Jet = ArrayJet;

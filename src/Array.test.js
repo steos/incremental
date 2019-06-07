@@ -310,3 +310,41 @@ test("Jet.sort with multiple changes", t => {
     ])
   );
 });
+
+test("Jet.take with insert", t => {
+  const xs = of([_1, _2, _3, _23, _42, _1337])
+    .asJet([InsertAt(3, Atomic.of(11))])
+    .take(3);
+
+  t.deepEqual(xs, new Jet(of([_1, _2, _3]), []));
+});
+
+test("Jet.take with delete", t => {
+  const xs = of([_1, _2, _3, _23, _42, _1337])
+    .asJet([DeleteAt(0)])
+    .take(3);
+
+  t.deepEqual(xs, new Jet(of([_1, _2, _3]), [DeleteAt(0), InsertAt(2, _23)]));
+});
+
+test("Jet.take + sort with delete", t => {
+  const xs = of([_1, _2, _3, _23, _42, _1337])
+    .asJet([DeleteAt(4)])
+    .sort((a, b) => b.value - a.value)
+    .take(3);
+
+  t.deepEqual(
+    xs,
+    new Jet(of([_1337, _42, _23]), [DeleteAt(1), InsertAt(2, _3)])
+  );
+});
+
+test("Jet.take + filter + sort with delete", t => {
+  const xs = of([_1, _2, _3, _23, _42, _1337])
+    .asJet([DeleteAt(4)])
+    .filter(x => x.value !== 1337)
+    .sort((a, b) => b.value - a.value)
+    .take(3);
+
+  t.deepEqual(xs, new Jet(of([_42, _23, _3]), [DeleteAt(0), InsertAt(2, _2)]));
+});
