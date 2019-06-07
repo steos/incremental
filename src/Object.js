@@ -41,6 +41,16 @@ export class IObject {
     }
   }
 
+  filter(f) {
+    const x = {};
+    for (const [k, v] of Object.entries(this.entries)) {
+      if (f(v)) {
+        x[k] = v;
+      }
+    }
+    return new IObject(x);
+  }
+
   get(k) {
     return this.entries[k];
   }
@@ -126,6 +136,45 @@ class ObjectJet {
       })
     );
     return new IArray.Jet(IArray.of(position), velocity);
+  }
+
+  filter(f) {
+    const position = {};
+    const keys = {};
+    JsObject.forEach(this.position.unwrap(), (key, value) => {
+      if (f(value)) {
+        keys[key] = true;
+        position[key] = value;
+      } else {
+        keys[key] = false;
+      }
+    });
+    const velocity = {};
+    JsObject.forEach(this.velocity, (key, patch) => {
+      patch.cata({
+        Add: value => {
+          if (f(value)) {
+            velocity[key] = Change.Add(value);
+          }
+        },
+        Remove: () => {
+          if (position[key] != null) {
+            velocity[key] = Change.Remove;
+          }
+        },
+        Update: dx => {
+          if (position[key] != null) {
+            const newVal = position[key].patch(dx);
+            if (f(newVal)) {
+              velocity[key] = Change.Update(dx);
+            } else {
+              velocity[key] = Change.Remove;
+            }
+          }
+        }
+      });
+    });
+    return new ObjectJet(of(position), velocity);
   }
 }
 

@@ -68,3 +68,23 @@ test("Jet.values", t => {
     ])
   );
 });
+
+test("Jet.filter", t => {
+  const pred = x => x.value !== "aardvark" && x.value !== "foo";
+  const x = of({ foo, bar, baz });
+  const changes = {
+    bar: Remove,
+    baz: Update(Last.of("aardvark")),
+    quux: Add(quux)
+  };
+  const j = x.asJet(changes);
+
+  t.deepEqual(
+    j.filter(pred),
+    new Jet(of({ bar, baz }), {
+      bar: Remove,
+      baz: Remove,
+      quux: Add(quux)
+    })
+  );
+});
