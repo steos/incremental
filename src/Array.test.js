@@ -1,8 +1,7 @@
 import test from "ava";
-import * as IArray from "./Array";
 import * as Atomic from "./Atomic";
 import * as ITuple from "./Tuple";
-import { Jet, insertAt, of, ArrayChange } from "./Array";
+import { Jet, insertAt, of, Change } from "./Array";
 import { Last } from "./Optional";
 
 const _1 = Atomic.of(1);
@@ -12,9 +11,9 @@ const _1337 = Atomic.of(1337);
 const _42 = Atomic.of(42);
 const _23 = Atomic.of(23);
 
-const InsertAt = ArrayChange.InsertAt;
-const ModifyAt = ArrayChange.ModifyAt;
-const DeleteAt = ArrayChange.DeleteAt;
+const InsertAt = Change.InsertAt;
+const ModifyAt = Change.ModifyAt;
+const DeleteAt = Change.DeleteAt;
 
 test("patch (InsertAt)", t => {
   const a = of([]);

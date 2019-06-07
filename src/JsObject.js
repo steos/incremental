@@ -1,6 +1,8 @@
 export const map = (f, xs) => {
   const ys = {};
-  forEach(xs, (k, x) => (ys[k] = f(x, k)));
+  forEach(xs, (k, x) => {
+    ys[k] = f(x, k);
+  });
   return ys;
 };
 

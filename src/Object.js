@@ -1,77 +1,54 @@
 import daggy from "daggy";
 import * as JsObject from "./JsObject";
 
-export const ObjectChange = daggy.taggedSum("MapChange", {
+export const Change = daggy.taggedSum("ObjectChange", {
   Add: ["value"],
   Remove: [],
   Update: ["delta"]
 });
 
-export class ObjectChanges {
-  constructor(map) {
-    this.map = map;
-  }
-  append(x) {
-    //TODO
-    throw new Error("todo");
-  }
-
-  forEach(f) {
-    for (const [k, v] of Object.entries(this.map)) {
-      f(k, v);
-    }
-  }
-
-  static empty = new ObjectChanges({});
-}
-
 export class IObject {
   constructor(value) {
-    // console.log("IMap.constructor", value);
-    this.value = value;
+    this.entries = value;
   }
-  patch(deltas) {
-    if (deltas == null) return this;
-    if (!(deltas instanceof ObjectChanges)) {
-      throw new TypeError();
-    }
-
-    // console.log("IMap.patch|enter", deltas, this.value);
-    const m = Object.assign({}, this.value);
-    deltas.forEach((key, delta) => {
-      // console.log("apply mapchange", key, delta);
-      if (!ObjectChange.is(delta)) throw new TypeError();
-      delta.cata({
-        Add: value => (m[key] = value),
+  patch(changes) {
+    const newEntries = Object.assign({}, this.entries);
+    JsObject.forEach(changes, (key, change) => {
+      if (!Change.is(change)) throw new TypeError();
+      change.cata({
+        Add: value => {
+          newEntries[key] = value;
+        },
         Remove: () => {
-          if (m[key] != null) {
-            delete m[key];
+          if (newEntries[key] != null) {
+            delete newEntries[key];
           }
         },
-        Update: delta => {
-          // console.log("apply update", m[key], delta);
-          if (m[key] != null) {
-            m[key] = m[key].patch(delta);
+        Update: dx => {
+          if (newEntries[key] != null) {
+            newEntries[key] = newEntries[key].patch(dx);
           }
         }
       });
     });
-    // console.log("IMap.patch|leave", m);
-    return new IObject(m);
+    return new IObject(newEntries);
   }
 
   forEach(f) {
-    for (const [k, v] of Object.entries(this.value)) {
+    for (const [k, v] of Object.entries(this.entries)) {
       f(k, v);
     }
   }
 
   get(k) {
-    return this.value[k];
+    return this.entries[k];
   }
 
   asJet(velocity = null) {
     return new ObjectJet(this, velocity);
+  }
+  unwrap() {
+    return this.entries;
   }
 
   static empty = new IObject({});
@@ -80,7 +57,38 @@ export class IObject {
 class ObjectJet {
   constructor(position, velocity) {
     this.position = position;
-    this.velocity = velocity == null ? ObjectChanges.empty : velocity;
+    this.velocity = velocity == null ? {} : velocity;
+  }
+  map(f) {
+    const position = JsObject.map(
+      x => f(x.asJet()).position,
+      this.position.unwrap()
+    );
+    const temp = Object.assign({}, position);
+
+    const velocity = {};
+    JsObject.forEach(this.velocity, (key, change) =>
+      change.cata({
+        Add: value => {
+          if (temp[key] != null)
+            throw new Error(`cannot add key "${key}" twice`);
+          temp[key] = f(value.asJet()).position;
+          velocity[key] = Change.Add(temp[key]);
+        },
+        Remove: () => {
+          if (temp[key] == null) throw new Error(`unknown key ${key}`);
+          delete velocity[key];
+          delete temp[key];
+          velocity[key] = Change.Remove;
+        },
+        Update: dx => {
+          if (temp[key] == null) throw new Error(`unknown key ${key}`);
+          velocity[key] = Change.Update(f(temp[key].asJet(dx)).velocity);
+          temp[key] = temp[key].patch(dx);
+        }
+      })
+    );
+    return new ObjectJet(of(position), velocity);
   }
 }
 
@@ -91,16 +99,12 @@ export const empty = IObject.empty;
 export const of = xs => new IObject(xs);
 
 export const staticJet = xs => {
-  // console.log("IMap.staticJet", xs);
   return new ObjectJet(
     new IObject(JsObject.map(x => x.position, xs)),
-    new ObjectChanges(
-      JsObject.map(({ velocity }) => ObjectChange.Update(velocity), xs)
-    )
+    new Patch(JsObject.map(({ velocity }) => Change.Update(velocity), xs))
   );
 };
 
 export const singleton = (k, v) => {
-  // console.log("IMap.singleton", k, v);
   return staticJet({ [k]: v });
 };
