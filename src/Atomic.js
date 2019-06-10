@@ -21,8 +21,8 @@ export class Atomic {
 
 class AtomicJet {
   constructor(position, velocity) {
-    this.position = position;
-    this.velocity = Last.of(velocity);
+    this.$position = position;
+    this.$velocity = Last.of(velocity);
   }
 
   // forall a b
@@ -30,12 +30,12 @@ class AtomicJet {
   // -> Jet (Atomic a)
   // -> Jet (Atomic b)
   map(f) {
-    return new AtomicJet(this.position.fmap(f), this.velocity.fmap(f));
+    return new AtomicJet(this.$position.fmap(f), this.$velocity.fmap(f));
   }
   apply(x) {
     return new AtomicJet(
-      this.position.fmap(f => f(x)),
-      this.velocity.fmap(f => f(x))
+      this.$position.fmap(f => f(x)),
+      this.$velocity.fmap(f => f(x))
     );
   }
 
@@ -46,16 +46,16 @@ class AtomicJet {
   // -> Jet (Atomic c)
   static lift2(f, a, b) {
     // console.log("Atomic.Jet.lift2", a, b);
-    const va = a.velocity;
-    const vb = b.velocity;
+    const va = a.$velocity;
+    const vb = b.$velocity;
     return new AtomicJet(
-      new Atomic(f(a.position.value, b.position.value)),
+      new Atomic(f(a.$position.value, b.$position.value)),
       va.isNone() && vb.isNone()
         ? Last.of(null)
         : Last.of(
             f(
-              va.getWithDefault(a.position.value),
-              vb.getWithDefault(b.position.value)
+              va.getWithDefault(a.$position.value),
+              vb.getWithDefault(b.$position.value)
             )
           )
     );

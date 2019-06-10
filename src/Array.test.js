@@ -261,10 +261,10 @@ test("Jet.filter <==> filter", t => {
     // [3,1337,42,23,3,2,1]
   ];
   const ys = xs.patch(changes).filter(predicate);
-  const { position, velocity } = xs.asJet(changes).filter(predicate);
+  const { $position, $velocity } = xs.asJet(changes).filter(predicate);
 
   t.deepEqual(ys, of([_1337, _42, _23]));
-  t.deepEqual(position.patch(velocity), ys);
+  t.deepEqual($position.patch($velocity), ys);
 });
 
 test("Jet.sort with insert", t => {

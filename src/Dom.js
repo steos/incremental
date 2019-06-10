@@ -33,8 +33,8 @@ export class View {
 
 export class ViewJet {
   constructor(position, velocity) {
-    this.position = position;
-    this.velocity = velocity == null ? ViewChanges.empty() : velocity;
+    this.$position = position;
+    this.$velocity = velocity == null ? ViewChanges.empty() : velocity;
   }
 }
 
@@ -73,16 +73,16 @@ const view = (tagName, text, attrs, handlers, kids) =>
   new ViewJet(
     new View(
       tagName,
-      text.position,
-      attrs.position,
-      handlers.position,
-      kids.position
+      text.$position,
+      attrs.$position,
+      handlers.$position,
+      kids.$position
     ),
     new ViewChanges(
-      text.velocity,
-      attrs.velocity,
-      handlers.velocity,
-      kids.velocity
+      text.$velocity,
+      attrs.$velocity,
+      handlers.$velocity,
+      kids.$velocity
     )
   );
 
@@ -274,10 +274,10 @@ export const run = (root, component, initialModel) => {
 
   const update = (m, dm) =>
     // console.log("run.update", m, dm) ||
-    component(Atomic.of(onChange).asJet(), m.asJet(dm)).velocity;
+    component(Atomic.of(onChange).asJet(), m.asJet(dm)).$velocity;
 
   currentView = component(Atomic.of(onChange).asJet(), initialModel.asJet())
-    .position;
+    .$position;
 
   // console.log("view = ", currentView);
 

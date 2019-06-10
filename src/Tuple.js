@@ -1,11 +1,12 @@
+import { patch, asJet } from "./Primitives";
+
 export class Tuple {
   constructor(fst, snd) {
     this.fst = fst;
     this.snd = snd;
   }
-  patch(delta) {
-    const { fst, snd } = delta;
-    return new Tuple(this.fst.patch(fst), this.snd.patch(snd));
+  patch(change) {
+    return new Tuple(patch(this.fst, change.fst), patch(this.snd, change.snd));
   }
   append({ fst, snd }) {
     return new Tuple(this.fst.append(fst), this.snd.append(snd));
@@ -19,21 +20,21 @@ class TupleJet {
   constructor(position, velocity) {
     // console.group("TupleJet.constructor");
     // console.log("position = ", position);
-    this.position = position;
-    this.velocity =
+    this.$position = position;
+    this.$velocity =
       velocity == null
         ? new Tuple(
-            position.fst.asJet().velocity,
-            position.snd.asJet().velocity
+            asJet(position.fst).$velocity,
+            asJet(position.snd).$velocity
           )
         : velocity;
     // console.groupEnd();
   }
   fst() {
-    return this.position.fst.asJet(this.velocity.fst);
+    return asJet(this.$position.fst, this.$velocity.fst);
   }
   snd() {
-    return this.position.snd.asJet(this.velocity.snd);
+    return asJet(this.$position.snd, this.$velocity.snd);
   }
   uncurry(f) {
     // console.log("uncurry = ", f);

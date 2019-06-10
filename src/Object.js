@@ -1,6 +1,7 @@
 import daggy from "daggy";
 import * as JsObject from "./JsObject";
 import * as IArray from "./Array";
+import { patch, asJet } from "./Primitives";
 
 export const Change = daggy.taggedSum("ObjectChange", {
   Add: ["value"],
@@ -67,23 +68,23 @@ export class IObject {
 
 class ObjectJet {
   constructor(position, velocity) {
-    this.position = position;
-    this.velocity = velocity == null ? {} : velocity;
+    this.$position = position;
+    this.$velocity = velocity == null ? {} : velocity;
   }
   map(f) {
     const position = JsObject.map(
-      x => f(x.asJet()).position,
-      this.position.unwrap()
+      x => f(asJet(x)).$position,
+      this.$position.unwrap()
     );
     const temp = Object.assign({}, position);
 
     const velocity = {};
-    JsObject.forEach(this.velocity, (key, change) =>
+    JsObject.forEach(this.$velocity, (key, change) =>
       change.cata({
         Add: value => {
           if (temp[key] != null)
             throw new Error(`cannot add key "${key}" twice`);
-          temp[key] = f(value.asJet()).position;
+          temp[key] = f(asJet(value)).$position;
           velocity[key] = Change.Add(temp[key]);
         },
         Remove: () => {
@@ -94,8 +95,8 @@ class ObjectJet {
         },
         Update: dx => {
           if (temp[key] == null) throw new Error(`unknown key ${key}`);
-          velocity[key] = Change.Update(f(temp[key].asJet(dx)).velocity);
-          temp[key] = temp[key].patch(dx);
+          velocity[key] = Change.Update(f(asJet(temp[key], dx)).$velocity);
+          temp[key] = patch(temp[key], dx);
         }
       })
     );
@@ -106,14 +107,14 @@ class ObjectJet {
     const position = [];
     const indexes = {};
     let index = 0;
-    JsObject.forEach(this.position.unwrap(), (key, value) => {
+    JsObject.forEach(this.$position.unwrap(), (key, value) => {
       position.push(value);
       indexes[key] = index++;
     });
     const velocity = [];
-    const temp = [].concat(position);
-    JsObject.forEach(this.velocity, (key, patch) =>
-      patch.cata({
+    const temp = Array.from(position);
+    JsObject.forEach(this.$velocity, (key, change) =>
+      change.cata({
         Add: value => {
           velocity.push(IArray.Change.InsertAt(temp.length, value));
           temp.push(value);
@@ -131,7 +132,7 @@ class ObjectJet {
         Update: dx => {
           const index = indexes[key];
           velocity.push(IArray.Change.ModifyAt(index, dx));
-          temp[index] = temp[index].patch(dx);
+          temp[index] = patch(temp[index], dx);
         }
       })
     );
@@ -141,7 +142,7 @@ class ObjectJet {
   filter(f) {
     const position = {};
     const keys = {};
-    JsObject.forEach(this.position.unwrap(), (key, value) => {
+    JsObject.forEach(this.$position.unwrap(), (key, value) => {
       if (f(value)) {
         keys[key] = true;
         position[key] = value;
@@ -150,8 +151,8 @@ class ObjectJet {
       }
     });
     const velocity = {};
-    JsObject.forEach(this.velocity, (key, patch) => {
-      patch.cata({
+    JsObject.forEach(this.$velocity, (key, change) => {
+      change.cata({
         Add: value => {
           if (f(value)) {
             velocity[key] = Change.Add(value);
@@ -164,15 +165,15 @@ class ObjectJet {
         },
         Update: dx => {
           if (position[key] != null) {
-            const newVal = position[key].patch(dx);
+            const newVal = patch(position[key], dx);
             if (f(newVal)) {
               velocity[key] = Change.Update(dx);
             } else {
               velocity[key] = Change.Remove;
             }
           } else {
-            const val = this.position.get(key);
-            const newVal = val.patch(dx);
+            const val = this.$position.get(key);
+            const newVal = patch(val, dx);
             velocity[key] = Change.Add(newVal);
           }
         }
@@ -190,8 +191,8 @@ export const of = xs => new IObject(xs);
 
 export const staticJet = xs => {
   return new ObjectJet(
-    new IObject(JsObject.map(x => x.position, xs)),
-    JsObject.map(({ velocity }) => Change.Update(velocity), xs)
+    new IObject(JsObject.map(x => x.$position, xs)),
+    JsObject.map(({ $velocity }) => Change.Update($velocity), xs)
   );
 };
 

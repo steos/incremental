@@ -3,6 +3,7 @@ import * as JsArray from "./JsArray";
 import * as ITuple from "./Tuple";
 import * as Atomic from "./Atomic";
 import { Last } from "./Optional";
+import { patch, asJet } from "./Primitives";
 
 export const Change = daggy.taggedSum("ArrayChange", {
   InsertAt: ["index", "value"],
@@ -15,18 +16,7 @@ export class IArray {
     this.xs = xs;
   }
   patch(deltas) {
-    // console.log("IArray.patch", deltas);
-    const xs = this.xs.concat([]);
-    deltas.forEach(delta =>
-      delta.cata({
-        InsertAt: (index, value) => xs.splice(index, 0, value),
-        DeleteAt: index => xs.splice(index, 1),
-        ModifyAt: (index, delta) => {
-          xs[index] = xs[index].patch(delta);
-        }
-      })
-    );
-    return new IArray(xs);
+    return new IArray(patch(this.xs, deltas));
   }
 
   forEach(f) {
@@ -66,30 +56,32 @@ export class IArray {
 
 class ArrayJet {
   constructor(position, velocity) {
-    this.position = position;
-    this.velocity = velocity == null ? [] : velocity;
+    this.$position = position;
+    this.$velocity = velocity == null ? [] : velocity;
   }
 
   // (Jet a -> Jet b)
   // -> Jet (IArray a)
   // -> Jet (IArray b)
   map(f) {
-    let xs = [].concat(this.position.unwrap());
-    let velocity = [];
-    this.velocity.forEach(change =>
+    const xs = Array.from(this.$position.unwrap());
+    const velocity = [];
+    this.$velocity.forEach(change =>
       change.cata({
         InsertAt: (index, x) => {
           xs.splice(index, 0, x);
-          velocity.push(insertAt(index, f(x.asJet()).position)[0]);
+          velocity.push(Change.InsertAt(index, f(asJet(x)).$position));
         },
         DeleteAt: index => {
           xs.splice(index, 1);
-          velocity.push(deleteAt(index)[0]);
+          velocity.push(Change.DeleteAt(index));
         },
         ModifyAt: (index, d) => {
           if (0 <= index && index < xs.length) {
             const c = xs[index].patch(d);
-            velocity.push(modifyAt(index, f(xs[index].asJet(d)).velocity)[0]);
+            velocity.push(
+              Change.ModifyAt(index, f(asJet(xs[index], d)).$velocity)
+            );
             xs[index] = c;
           }
         }
@@ -97,19 +89,19 @@ class ArrayJet {
     );
 
     return new ArrayJet(
-      this.position.map(x => f(x.asJet()).position),
+      this.$position.map(x => f(asJet(x)).$position),
       velocity
     );
   }
 
   withIndex() {
-    const len0 = this.position.length();
+    const len0 = this.$position.length();
 
-    const position = this.position.map((x, i) => ITuple.of(Atomic.of(i), x));
+    const position = this.$position.map((x, i) => ITuple.of(Atomic.of(i), x));
 
     let len = len0;
     const velocity = [];
-    this.velocity.forEach(change =>
+    this.$velocity.forEach(change =>
       change.cata({
         InsertAt: (index, val) => {
           velocity.push(
@@ -117,7 +109,7 @@ class ArrayJet {
           );
           JsArray.range(index + 1, len).forEach(j => {
             velocity.push(
-              Change.ModifyAt(j, ITuple.of(Last.of(j), val.asJet().velocity))
+              Change.ModifyAt(j, ITuple.of(Last.of(j), asJet(val).$velocity))
             );
           });
           len = len + 1;
@@ -146,18 +138,18 @@ class ArrayJet {
   }
 
   foldWith(x0, jet, reducer, vreducer) {
-    const p = this.position.reduce(reducer, x0);
-    const xs = [].concat(this.position.unwrap());
+    const p = this.$position.reduce(reducer, x0);
+    const xs = Array.from(this.$position.unwrap());
     let v = p;
-    this.velocity.forEach(patch => {
-      v = vreducer(v, patch, xs);
+    this.$velocity.forEach(change => {
+      v = vreducer(v, change, xs);
     });
     return jet(p, v);
   }
 
   fold(fold, x0) {
-    return this.foldWith(x0, fold.jet, fold.add, (v, patch, xs) =>
-      patch.cata({
+    return this.foldWith(x0, fold.jet, fold.add, (v, change, xs) =>
+      change.cata({
         InsertAt: (index, val) => {
           xs.splice(index, 0, val);
           return fold.add(v, val);
@@ -181,7 +173,7 @@ class ArrayJet {
     const xs = [];
     const removeCounts = [];
     let removed = 0;
-    this.position.forEach(val => {
+    this.$position.forEach(val => {
       if (f(val)) {
         xs.push(val);
       } else {
@@ -189,11 +181,11 @@ class ArrayJet {
       }
       removeCounts.push(removed);
     });
-    const position = of([].concat(xs));
+    const position = of(Array.from(xs));
     const vel = [];
 
-    this.velocity.forEach(patch => {
-      patch.cata({
+    this.$velocity.forEach(change => {
+      change.cata({
         InsertAt: (index, val) => {
           const removeCount = index > 0 ? removeCounts[index - 1] : 0;
           if (f(val)) {
@@ -218,7 +210,7 @@ class ArrayJet {
           const removeCount = removeCounts[index];
           const wasRemoved = prevRemoveCount < removeCount;
 
-          const x = xs[index - prevRemoveCount].patch(dx);
+          const x = patch(xs[index - prevRemoveCount], dx);
           const matchesFilter = f(x);
           if (matchesFilter && wasRemoved) {
             vel.push(Change.InsertAt(index - prevRemoveCount, x));
@@ -234,31 +226,30 @@ class ArrayJet {
   }
 
   sort(compare) {
-    const xs = [].concat(this.position.unwrap());
-    xs.sort(compare);
+    const xs = Array.from(this.$position.unwrap()).sort(compare);
 
-    const position = new IArray([].concat(xs));
+    const position = new IArray(Array.from(xs));
 
     const velocity = [];
-    this.velocity.forEach(patch => {
-      patch.cata({
+    this.$velocity.forEach(change => {
+      change.cata({
         InsertAt: (index, value) => {
           const rank = JsArray.binarySearchRankL(value, xs, compare);
           velocity.push(Change.InsertAt(rank, value));
           xs.splice(rank, 0, value);
         },
         DeleteAt: index => {
-          const value = this.position.get(index);
+          const value = this.$position.get(index);
           const sortedIndex = JsArray.binarySearch(value, xs, compare);
           if (sortedIndex == null) throw new Error();
           velocity.push(Change.DeleteAt(sortedIndex));
           xs.splice(sortedIndex, 1);
         },
         ModifyAt: (index, dx) => {
-          const oldValue = this.position.get(index);
+          const oldValue = this.$position.get(index);
           const sortedIndex = JsArray.binarySearch(oldValue, xs, compare);
           velocity.push(Change.DeleteAt(sortedIndex));
-          const newValue = oldValue.patch(dx);
+          const newValue = patch(oldValue, dx);
           xs.splice(sortedIndex, 1);
           const rank = JsArray.binarySearchRankL(newValue, xs, compare);
           velocity.push(Change.InsertAt(rank, newValue));
@@ -270,11 +261,11 @@ class ArrayJet {
   }
 
   take(n) {
-    const xs = this.position.unwrap().concat([]);
+    const xs = Array.from(this.$position.unwrap());
     const position = new IArray(xs.slice(0, n));
     const velocity = [];
-    this.velocity.forEach(patch =>
-      patch.cata({
+    this.$velocity.forEach(change =>
+      change.cata({
         InsertAt: (index, value) => {
           if (index < n) {
             velocity.push(Change.InsertAt(index, value));
@@ -320,8 +311,8 @@ export const singleton = ({ position, velocity }) => {
 // Array (Jet a) -> Jet (IArray a)
 export const staticJet = xs => {
   return new ArrayJet(
-    new IArray(xs.map(({ position }) => position)),
-    xs.map(({ velocity }, index) => Change.ModifyAt(index, velocity))
+    new IArray(xs.map(({ $position }) => $position)),
+    xs.map(({ $velocity }, index) => Change.ModifyAt(index, $velocity))
   );
 };
 
