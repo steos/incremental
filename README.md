@@ -2,6 +2,8 @@
 
 A JavaScript implementation of [purescript-purview](https://github.com/paf31/purescript-purview) and [purescript-incremental-functions](https://github.com/paf31/purescript-incremental-functions).
 
+**This is all still very experimental and not ready for use.**
+
 ## Documentation
 
 - [Concepts](./doc/concepts.md)
@@ -29,3 +31,9 @@ Run the tests with
 ```
 yarn test
 ```
+
+## License
+
+Copyright © 2019 Stefan Oestreicher and contributors.
+
+Distributed under the terms of the BSD (3-Clause) license.
