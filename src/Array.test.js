@@ -310,6 +310,42 @@ test("Jet.sort with multiple changes", t => {
   );
 });
 
+test("Jet.sort with equal sort value but different identity + Delete", t => {
+  const compare = (a, b) => a.text.localeCompare(b.text);
+  const items = [
+    { id: 1, text: "foo" },
+    { id: 2, text: "foo" },
+    { id: 3, text: "bar" },
+    { id: 4, text: "quux" }
+  ];
+  const xs = of(items)
+    .asJet([DeleteAt(1)])
+    .sort(compare);
+
+  t.deepEqual(xs, new Jet(of(Array.from(items).sort(compare)), [DeleteAt(2)]));
+});
+
+test("Jet.sort with equal sort value but different identity + Modify", t => {
+  const compare = (a, b) => a.text.localeCompare(b.text);
+  const items = [
+    { id: 1, text: "foo" },
+    { id: 2, text: "foo" },
+    { id: 3, text: "bar" },
+    { id: 4, text: "quux" }
+  ];
+  const xs = of(items)
+    .asJet([ModifyAt(1, { text: "aardvark" })])
+    .sort(compare);
+
+  t.deepEqual(
+    xs,
+    new Jet(of(Array.from(items).sort(compare)), [
+      DeleteAt(2),
+      InsertAt(0, { id: 2, text: "aardvark" })
+    ])
+  );
+});
+
 test("Jet.take with insert", t => {
   const xs = of([_1, _2, _3, _23, _42, _1337])
     .asJet([InsertAt(3, Atomic.of(11))])

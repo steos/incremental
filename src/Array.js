@@ -226,9 +226,18 @@ class ArrayJet {
   }
 
   sort(compare) {
-    const xs = Array.from(this.$position.unwrap()).sort(compare);
+    const indices = [];
+    const position = [];
+    this.$position
+      .unwrap()
+      .map((value, index) => [value, index])
+      .sort(([a], [b]) => compare(a, b))
+      .forEach(([value, originalIndex], sortedIndex) => {
+        indices[originalIndex] = sortedIndex;
+        position.push(value);
+      });
 
-    const position = new IArray(Array.from(xs));
+    const xs = Array.from(position);
 
     const velocity = [];
     this.$velocity.forEach(change => {
@@ -239,15 +248,14 @@ class ArrayJet {
           xs.splice(rank, 0, value);
         },
         DeleteAt: index => {
-          const value = this.$position.get(index);
-          const sortedIndex = JsArray.binarySearch(value, xs, compare);
+          const sortedIndex = indices[index];
           if (sortedIndex == null) throw new Error();
           velocity.push(Change.DeleteAt(sortedIndex));
           xs.splice(sortedIndex, 1);
         },
         ModifyAt: (index, dx) => {
           const oldValue = this.$position.get(index);
-          const sortedIndex = JsArray.binarySearch(oldValue, xs, compare);
+          const sortedIndex = indices[index];
           velocity.push(Change.DeleteAt(sortedIndex));
           const newValue = patch(oldValue, dx);
           xs.splice(sortedIndex, 1);
@@ -257,7 +265,7 @@ class ArrayJet {
         }
       });
     });
-    return new Jet(position, velocity);
+    return new Jet(new IArray(position), velocity);
   }
 
   take(n) {

@@ -42,6 +42,7 @@ export const patchRecord = (x, dxs) => {
   JsObject.forEach(dxs, (key, dx) => {
     y[key] = patch(y[key], dx);
   });
+  return y;
 };
 
 export const asJet = (x, dx = undefined) => {
